@@ -96,6 +96,7 @@ gpgme_error_t passfunc(void *hook, const char *uid_hint, const char *passphrase_
   return GPG_ERR_NO_ERROR;
 }
 
+//TODO: refactor to hold a vector<gpgme_key_t> instead of calling gpgme_op_keylist_start(),gpgme_op_keylist_next()
 class keyRaii{
 private:
   gpgme_key_t key;
@@ -121,7 +122,7 @@ private:
   gpgme_error_t err;
   gpgme_ctx_t ctx;
   gpgme_decrypt_flags_t flags = static_cast<gpgme_decrypt_flags_t>(0);
-  gpgme_data_t in = NULL;
+  gpgme_data_t in = NULL;//TODO: refactor to an RAII class
   gpgme_data_t out = NULL;
   gpgme_protocol_t proto{GPGME_PROTOCOL_OpenPGP};
 
