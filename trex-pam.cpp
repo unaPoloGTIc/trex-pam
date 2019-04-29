@@ -367,7 +367,7 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
   int ret;
   struct MHD_Response *response;
 
-  if (0 != strcmp (method, "GET"))
+  if (0 != strncmp (method, "GET", 4))
     return MHD_NO;
   if (NULL == *con_cls)
     {
@@ -487,7 +487,7 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
       challengeHandler ver{};
       auto gpHomeCstr{pam_getenv(pamh, "GNUPGHOME")};
       string gnupgHome{gpHomeCstr?gpHomeCstr:".gnupg"s};
-      
+
       auto [challenge, pass]{ver.getChallenge(homeDir+"/"s+gnupgHome, reciever, trust, sign, signAs)};
       auto clearMsg{"\nTimeout set for 10 minutes\nResponse:"s};
       struct MHD_Daemon *d{nullptr};

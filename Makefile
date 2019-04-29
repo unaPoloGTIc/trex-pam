@@ -1,8 +1,12 @@
-all: pam-module
+all: pam-module tests
 
 pam-module:
 	g++ -g -std=c++17 -fPIC -c trex-pam.cpp
 	g++ -g -std=c++17 -shared -o trex-pam.so trex-pam.o -lpam -lqrcodegencpp -lboost_system -lmicrohttpd `gpgme-config --cflags --libs`
 
+tests: pam-module
+	g++ -g pam-tests.cpp -o pam-tests -std=c++17 -lgtest -lgmock -lpthread -lpam `gpgme-config --cflags --libs`
+run-unit-tests: tests
+	LD_PRELOAD=libpam_wrapper.so PAM_WRAPPER=1 PAM_WRAPPER_KEEP_DIR=1 PAM_WRAPPER_DEBUGLEVEL=3 PAM_WRAPPER_USE_SYSLOG=1 PAM_WRAPPER_SERVICE_DIR=./config/ ./pam-tests
 clean:
-	rm *.so *.o
+	rm *.so *.o pam-tests
