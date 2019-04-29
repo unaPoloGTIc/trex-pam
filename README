@@ -1,6 +1,6 @@
-#Trex PAM module:
+# Trex PAM module:
 
-##A PAM module that enables PAM to authenticate a user using a GPG key-pair.
+## A PAM module that enables PAM to authenticate a user using a GPG key-pair.
 
 The module will present a challenge to the user, encrypted using his public key.
 User is then required to use his private key to decrypt,
@@ -9,18 +9,18 @@ extract the correct response and present it to the authenticating app.
 User has 1 attempt to provide the correct response and must do so within 10 minutes.
 Failure requires a start-over with a new challenge and response.
 
-##Using the module:
+## Using the module:
 
 Place the binary (.so) anywhere readable by your app.
 (Your distribution probably has a location for PAM modules)
 
-###Configure PAM:
+### Configure PAM:
 Create/edit a config file for PAM (usually under /etc/pam.d/)
 Say /etc/pam.d/sshd
 Add to it something like:
 auth	required	/path/to/trex-module.so
 
-###Configure users:
+### Configure users:
 For each user to utilize the module create ~username/.auth_gpg
 Place in it a line instructing the module:
 <email to encrypt to> <trust | notrust> <email to sign as | nosign> <webQR specification> [https server key] [https server certificate]
@@ -39,12 +39,12 @@ A path to the key file and a path to the certificate to use for HTTPS.
 
 Now you can ssh user@host and follow the displayed instructions.
 
-##Security considerations:
+## Security considerations:
 The module generates a random challenge for every attempted login.
 The correct (randomized) response must be entered within 10 minutes and on the first attempt.
 This is to prevent replay attacks.
 
-##Protect the module, pam config files, .auth_gpg file and the private key in all the usual ways.
+## Protect the module, pam config files, .auth_gpg file and the private key in all the usual ways.
 
 Formally, the challenge may be published as follows:
 After the login attempt: even after failure, the module will no longer accept the corresponding response.
@@ -64,13 +64,13 @@ sign/nosign: signing the challenge may prevent an attacker from presenting to th
 If unsigned, the attacker might fool the user to decrypt a message encrypted by the attacker.
 In which case the attacker learns nothing new.
 
-###Replay attacks:
+### Replay attacks:
 As stated above, a reused response will not be accepted.
 Except in the case in which the new session's random response is the same.
 Currently the response is a 10 chars long string consisting of lowercase, uppercase and digits.
 If your platform has good randomness, expect that to happen at about sqrt(64^10) (1B+)
 
-###MITM attacks:
+### MITM attacks:
 A man in the middle that is already capable of presenting itself to the user as the system will
 be able to present the response and proxy the modified session to the unsuspecting user.
 In case of a keyboard login, it means running code on the machine with at least as much privileges as the user.
@@ -78,11 +78,11 @@ Meaning the user was already compromised.
 In case of SSH login, it means pulling a MITM attack between the user and the SSH server.
 Meaning again that the attacker already had the ability to run code on the server or decrypt+modify SSH traffic. 
 
-##In any manner,
+## In any manner,
 this scheme is no more secure than your keys, randomness in your machine
 and every other limitation that applies to crypto in the real world.
 
-##Note about the tests:
+## Note about the tests:
 Some unit-tests are provided.
 Setting your environment so that they will pass may take a while,
 and may be incompatible with your real world needs.
