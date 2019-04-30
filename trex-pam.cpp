@@ -128,9 +128,9 @@ private:
 
   string encPub(string recp, bool trust = false, bool sign = true, string sender = ""s, string passphrase = ""s)
   {
-    gpgme_set_passphrase_cb (ctx, passfunc, (void*)passphrase.c_str());
-    
-    if (sign)//TODO: try to always sign
+    //if no gpg-agent can be found, this might help.
+    //gpgme_set_passphrase_cb(ctx, passfunc, (void*)passphrase.c_str());
+    if (sign)
       {
 	if (auto err{gpgme_op_keylist_start (ctx, sender.c_str(), 0)}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("gpgme_op_keylist_start() failed"s + string{gpgme_strerror(err)});
@@ -142,15 +142,14 @@ private:
 	  throw runtime_error("gpgme_op_keylist_next() failed "s + string{gpgme_strerror(err)});
 	if (auto err{gpgme_signers_add (ctx, key.get())}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("Can't add signer "s + sender + " " + string{gpgme_strerror(err)});
-	//TODO: fix "No agent running"
 	if (auto err{gpgme_op_encrypt_sign_ext(ctx,
 					       NULL,
 					       string{"--\n "s + recp + " \n"s}.c_str(),
-					       trust?GPGME_ENCRYPT_ALWAYS_TRUST:static_cast<gpgme_encrypt_flags_t>(0),//TODO: try to avoid trust
+					       trust?GPGME_ENCRYPT_ALWAYS_TRUST:static_cast<gpgme_encrypt_flags_t>(0),
 					       in,
 					       out)}; err != GPG_ERR_NO_ERROR)
 	  {
-	    throw runtime_error("Can't encrypt/sign pub/priv keys "s + recp + ",  " + sender + " : " + string{gpgme_strerror(err)});
+	    throw runtime_error("Can't encrypt/sign with keys "s + recp + ", " + sender + " : " + string{gpgme_strerror(err)});
 	  }
       }
     else
@@ -158,7 +157,7 @@ private:
 	if (auto err{gpgme_op_encrypt_ext(ctx,
 					  NULL,
 					  string{"--\n "s + recp + " \n"s}.c_str(),
-					  trust?GPGME_ENCRYPT_ALWAYS_TRUST:static_cast<gpgme_encrypt_flags_t>(0),//TODO: try to avoid trust
+					  trust?GPGME_ENCRYPT_ALWAYS_TRUST:static_cast<gpgme_encrypt_flags_t>(0),
 					  in,
 					  out)}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("Can't encrypt pubkey "s +  string{gpgme_strerror(err)});
