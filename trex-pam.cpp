@@ -50,6 +50,10 @@ using namespace std;
 
 #define DEFAULT_USER "nobody"
 
+/*
+RAII wrapper around PAM's conversation convention.
+Presents *in* to the user and returns the reply that was supplied.
+*/
 template<typename resp>
 resp converse(pam_handle_t *pamh, string in)
 {
@@ -85,18 +89,9 @@ resp converse(pam_handle_t *pamh, string in)
   throw runtime_error("pam_get_item() failed"s);
 }
 
-//Sorry for global func, maybe lambda?
-gpgme_error_t passfunc(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
-{
-  string pass{static_cast<char*>(hook)};
-  pass += '\n';
-  //if (gpgme_io_writen(fd,pass.c_str(), pass.length()+1) < 0)
-  if (gpgme_io_writen(fd,"\n", strlen("\n")) < 0)
-    return GPG_ERR_CANCELED;
-  return GPG_ERR_NO_ERROR;
-}
-
-//TODO: refactor to hold a vector<gpgme_key_t> instead of calling gpgme_op_keylist_start(),gpgme_op_keylist_next()
+/*
+RAII class to release gpgme keys when leaving scope.
+ */
 class keyRaii{
 private:
   gpgme_key_t key;
@@ -116,30 +111,33 @@ public:
   
 };
 
+/*
+RAII wrapper around GPGME encryption operations.
+ */
 class encrypter {
 private:
   string plain;
   gpgme_error_t err;
   gpgme_ctx_t ctx;
   gpgme_decrypt_flags_t flags = static_cast<gpgme_decrypt_flags_t>(0);
-  gpgme_data_t in = NULL;//TODO: refactor to an RAII class
+  gpgme_data_t in = NULL;
   gpgme_data_t out = NULL;
   gpgme_protocol_t proto{GPGME_PROTOCOL_OpenPGP};
 
-  string encPub(string recp, bool trust = false, bool sign = true, string sender = ""s, string passphrase = ""s)
+  /*
+    RAII helper to encrypt ro the public key of *recp*, optionally signing as *sender*
+   */
+  string encPub(string recp, bool trust = false, bool sign = true, string sender = ""s)
   {
-    //if no gpg-agent can be found, this might help.
-    //gpgme_set_passphrase_cb(ctx, passfunc, (void*)passphrase.c_str());
     if (sign)
       {
 	if (auto err{gpgme_op_keylist_start (ctx, sender.c_str(), 0)}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("gpgme_op_keylist_start() failed"s + string{gpgme_strerror(err)});
 	keyRaii key;
-	/* consider replacing with
-	   gpgme_get_key(ctx, sender.c_str(), &key, 1)
-	*/
 	if (auto err{gpgme_op_keylist_next (ctx, &key.get())}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("gpgme_op_keylist_next() failed "s + string{gpgme_strerror(err)});
+	if (auto err{gpgme_op_keylist_end(ctx)}; err != GPG_ERR_NO_ERROR)
+	   throw runtime_error("gpgme_op_keylist_end() failed "s + string{gpgme_strerror(err)});
 	if (auto err{gpgme_signers_add (ctx, key.get())}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("Can't add signer "s + sender + " " + string{gpgme_strerror(err)});
 	if (auto err{gpgme_op_encrypt_sign_ext(ctx,
@@ -183,6 +181,9 @@ public:
     gpgme_release (ctx);
   }
 
+  /*
+    RAII wrapper around a gpgme engine
+   */
   encrypter(string s, string gpgHome):plain{s}
   {
     gpgme_check_version (NULL);
@@ -211,6 +212,9 @@ public:
   }
 };
 
+/*
+returns a (hopefully) uniformlly random alphanumeric (lower+uppercase) string of length *len*
+ */
 string getNonce(int len = 10)
 {
   static string chars{"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"s};
@@ -226,10 +230,12 @@ string getNonce(int len = 10)
   return ret;
 }
 
+/*
+  Helper class to get challenges.
+ */
 class challengeHandler {
 private:
   
-  bool knownVersion{false};
   string nonce(int len = 10)
   {
     return getNonce(len);
@@ -247,6 +253,9 @@ public:
   }
 };
 
+/*
+  helper to parse a config line into parameters
+ */
 class userRecord {
 private:
   string trustStr;
@@ -276,6 +285,9 @@ public:
   }
 };
 
+/*
+  helper to parse a config file
+ */
 class userDb {
 private:
   userRecord rec;
@@ -310,6 +322,9 @@ public:
   }
 };
 
+/*
+  RAII class to temporarilly drop privilleges using setegid,seteuid
+ */
 class privDropper{
 private:
   uid_t origUid;
@@ -346,16 +361,22 @@ public:
 
 string globalChallenge{};
 
+/*
+  wrapper around libcppgenqr to get a qr representation of a string
+ */
 string getQR()
 {
-  const qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(globalChallenge.c_str(), qrcodegen::QrCode::Ecc::HIGH);//TODO: see if encodeBinary helps cut down qr size
+  const qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(globalChallenge.c_str(), qrcodegen::QrCode::Ecc::HIGH);
   return qr.toSvgString(1);
 }
 
 string globalUser, globalPass;
 bool globalAuth;
 
-//TODO: add https
+/*
+  called by libmicrohttpd
+  serve a QR image over http/s and optionally authenticate the requester.
+ */
 static int
 answer_to_connection (void *cls, struct MHD_Connection *connection,
 		      const char *url, const char *method,
@@ -420,6 +441,9 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
   return ret;
 }
 
+/*
+helper to make sense of the QR parameter in the config
+ */
 auto handleAuthTlsParams(string webQr)
 {
  bool webQrFlag{(webQr=="webQrAuthTls")||//TODO: refactor strings
@@ -436,6 +460,11 @@ auto handleAuthTlsParams(string webQr)
   return make_tuple(webQrFlag, tlsFlag, useTls);
 }
 
+/*
+  main event.
+  create a challenge, get a response, 
+  validate that the user is able to decrypt using a key that was preconfigured.
+ */
 PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, const char **argv )
 {
 #ifdef HAVE_PAM_FAIL_DELAY
@@ -450,23 +479,23 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
 
   constexpr auto maxUsernameSize = 100;
   const char *userChar[maxUsernameSize]{nullptr};
-  if (pam_get_user(pamh, userChar, nullptr)!=PAM_SUCCESS || !userChar)
+  if (pam_get_user(pamh, userChar, nullptr)!=PAM_SUCCESS || !userChar)//get user name
     {
       pam_syslog(pamh, LOG_WARNING, "pam_get_user() failed");
       return PAM_USER_UNKNOWN;
     }
   string user{*userChar, maxUsernameSize - 1};
 
-  auto userPw(getpwnam(user.c_str()));
+  auto userPw(getpwnam(user.c_str()));//get homedir
   if (!userPw)
     {
       pam_syslog(pamh, LOG_WARNING, "can't get homedir of pam user");
       return  PAM_AUTHINFO_UNAVAIL;
     }
-  privDropper priv{pamh, userPw};
+  privDropper priv{pamh, userPw};//drop privilleges.
 
   string homeDir{userPw->pw_dir};
-  userDb db{homeDir};
+  userDb db{homeDir};//parse config file
 
   if(!db.has())
     {
@@ -474,6 +503,7 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
       return PAM_IGNORE;
     }
 
+  //get all params from parsed config file
   auto [reciever, trust, signAs, sign, webQr, key, cert] = db.get();
   auto [webQrFlag, tlsFlag, useTls] = handleAuthTlsParams(webQr);
 
@@ -487,12 +517,15 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
       auto gpHomeCstr{pam_getenv(pamh, "GNUPGHOME")};
       string gnupgHome{gpHomeCstr?gpHomeCstr:".gnupg"s};
 
+      //generate challenge
       auto [challenge, pass]{ver.getChallenge(homeDir+"/"s+gnupgHome, reciever, trust, sign, signAs)};
       auto clearMsg{"\nTimeout set for 10 minutes\nResponse:"s};
       struct MHD_Daemon *d{nullptr};
 
+      //if needed, start a webserver to serve QR
       if (webQrFlag)
 	{
+	  //if needed, use TLS
 	  if (tlsFlag)
 	    {
 	      ifstream keyRead{key};
@@ -531,13 +564,15 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
 	  }
 	}
 
+      //get a response from the user
       auto response{converse<string>(pamh, challenge + clearMsg)};
 
       if (webQrFlag && d)
 	{
 	  MHD_stop_daemon(d);//TODO: RAII
 	}
-      
+
+      //verify that the user supplied the correct response in time
       auto timeOut{chrono::system_clock::now() + 10min};
       if (response == pass && timeOut > chrono::system_clock::now())
 	{
@@ -546,6 +581,7 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
       pam_syslog(pamh, LOG_WARNING, "wrong response or timeout reached");
       return PAM_AUTH_ERR;
     }
+  //handle exceptions
   catch(const runtime_error& ex)
     {
       string errMsg{"internal exception thrown: "s + ex.what()};
