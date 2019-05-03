@@ -370,8 +370,31 @@ string getQR()
   return qr.toSvgString(1);
 }
 
+//globals, carefull.
 string globalUser, globalPass;
 bool globalAuth;
+
+//RAII class to hold a MHD_response
+class mhdRespRaii {
+private:
+  struct MHD_Response *response;
+public:
+  mhdRespRaii(string page)
+  {
+    response = MHD_create_response_from_buffer (page.length(),
+						(void *)(page.c_str()),
+						MHD_RESPMEM_MUST_COPY);
+  }
+  ~mhdRespRaii()
+  {
+    if (response)
+      MHD_destroy_response (response);
+  }
+  auto get()
+  {
+    return response;
+  }
+};
 
 /*
   called by libmicrohttpd
@@ -385,7 +408,6 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
 {
   int fail;
   int ret;
-  struct MHD_Response *response;
 
   if (0 != strncmp (method, "GET", 4))
     return MHD_NO;
@@ -409,13 +431,10 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
 		      string{passRaii.get()} != globalPass ))
     {
       const char *page = "<html><body>Invalid credentials</body></html>";
-      response =
-	MHD_create_response_from_buffer (strlen (page), (void *) page,
-					 MHD_RESPMEM_MUST_COPY);
+      auto response{mhdRespRaii(page)};
       ret = MHD_queue_basic_auth_fail_response (connection,
 						"QR login",
-						response);
-      MHD_destroy_response (response);//TODO: RAII
+						response.get());
       return ret;
     }
 
@@ -433,11 +452,8 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
     "<title>QR challenge</title></head><body><figure>"s +
     qr +
     "</figure></body></html>"s;
-  response = MHD_create_response_from_buffer (content.length(),
-					      (void*)content.c_str(),
-					      MHD_RESPMEM_MUST_COPY);
-  ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
-  MHD_destroy_response (response);//TODO: RAII
+  auto response{mhdRespRaii(content)};
+  ret = MHD_queue_response (connection, MHD_HTTP_OK, response.get());
   return ret;
 }
 
@@ -455,10 +471,71 @@ auto handleAuthTlsParams(string webQr)
   bool tlsFlag = {webQrFlag &&
 		  !(webQr=="webQrNoAuthNoTls" || webQr=="webQrAuthNoTls")};
 
-  int useTls{tlsFlag?MHD_USE_TLS:0};
-
-  return make_tuple(webQrFlag, tlsFlag, useTls);
+  return make_tuple(webQrFlag, tlsFlag);
 }
+
+/*
+  RAII class to hold a webserver to serve QR codes
+ */
+class webServerRaii {
+private:
+  struct MHD_Daemon * d{nullptr};
+  static constexpr int fileSize{2'000};
+  char key_pem[fileSize]{""};
+  char cert_pem[fileSize]{""};
+  bool tlsFlag;
+public:
+  webServerRaii(bool _tlsFlag = true, string key = ""s, string cert = ""s):tlsFlag{_tlsFlag} {
+	  //if needed, use TLS
+	  if (tlsFlag)
+	    {
+	      ifstream keyRead{key};
+	      if (!keyRead)
+		throw(runtime_error{"Can't open key file"s});
+	      keyRead.get(key_pem, fileSize-1,'\0');
+	      ifstream certRead{cert};
+	      if (!certRead)
+		throw(runtime_error{"Can't open cert file"s});
+	      certRead.get(cert_pem, fileSize-1,'\0');
+	    }
+  }
+
+  //start serving QR, return a string description to display to the user
+  //  should have been called by ctor, but couldn't due to scoping issues in pam_auth
+  string start()
+  {
+    string clearMsg{};
+    int useTls{tlsFlag?MHD_USE_TLS:0};
+    d = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION | useTls,
+			 0,
+			 nullptr,
+			 nullptr,
+			 &answer_to_connection,
+			 nullptr,
+			 MHD_OPTION_HTTPS_MEM_KEY, key_pem,
+			 MHD_OPTION_HTTPS_MEM_CERT, cert_pem,
+			 MHD_OPTION_END);
+    if (!d)
+      {
+	clearMsg = "\nFailed starting server for QR "s + clearMsg;
+      } else {
+      stringstream ss{};
+      auto dinfo{MHD_get_daemon_info(d, MHD_DAEMON_INFO_BIND_PORT)};
+      ss<<"\nFor QR point your browser at http"s << (tlsFlag?"s"s:""s) << "://<this-host>:"s<<dinfo->port;
+      if (globalAuth)
+	ss<<"\nAuthenticate as '" << globalUser << "' and '"s<<globalPass<<"'";
+      clearMsg = ss.str() + clearMsg;
+    }
+    return clearMsg;
+  }
+
+  ~webServerRaii() {
+    if (d)
+      {
+	MHD_stop_daemon(d);
+      }
+  }
+};
 
 /*
   main event.
@@ -479,24 +556,29 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
 
   constexpr auto maxUsernameSize = 100;
   const char *userChar[maxUsernameSize]{nullptr};
-  if (pam_get_user(pamh, userChar, nullptr)!=PAM_SUCCESS || !userChar)//get user name
+
+  //get user name, or fail
+  if (pam_get_user(pamh, userChar, nullptr)!=PAM_SUCCESS || !userChar)
     {
       pam_syslog(pamh, LOG_WARNING, "pam_get_user() failed");
       return PAM_USER_UNKNOWN;
     }
   string user{*userChar, maxUsernameSize - 1};
 
-  auto userPw(getpwnam(user.c_str()));//get homedir
+  //get homedir, or fail
+  auto userPw(getpwnam(user.c_str()));
   if (!userPw)
     {
       pam_syslog(pamh, LOG_WARNING, "can't get homedir of pam user");
       return  PAM_AUTHINFO_UNAVAIL;
     }
-  privDropper priv{pamh, userPw};//drop privilleges.
 
+  //drop privilleges, or fail
+  privDropper priv{pamh, userPw};
+
+  //parse config file, or fail
   string homeDir{userPw->pw_dir};
-  userDb db{homeDir};//parse config file
-
+  userDb db{homeDir};
   if(!db.has())
     {
       pam_syslog(pamh, LOG_WARNING, "pam user has no valid .auth_gpg file under $HOME");
@@ -505,11 +587,7 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
 
   //get all params from parsed config file
   auto [reciever, trust, signAs, sign, webQr, key, cert] = db.get();
-  auto [webQrFlag, tlsFlag, useTls] = handleAuthTlsParams(webQr);
-
-  int fileSize{2'000};
-  char key_pem[fileSize]{""};
-  char cert_pem[fileSize]{""};
+  auto [webQrFlag, tlsFlag] = handleAuthTlsParams(webQr);
 
   try
     {
@@ -520,57 +598,22 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
       //generate challenge
       auto [challenge, pass]{ver.getChallenge(homeDir+"/"s+gnupgHome, reciever, trust, sign, signAs)};
       auto clearMsg{"\nTimeout set for 10 minutes\nResponse:"s};
-      struct MHD_Daemon *d{nullptr};
+
+      //hold a non running webserver.
+      //  must be declared in this scope.
+      webServerRaii qrServer(tlsFlag, key, cert);
+
+      //globals used by libmicrohttpd
+      globalChallenge = challenge;
+      globalPass = getNonce(10);
+      globalUser = user.substr(0, user.find('\0'));
 
       //if needed, start a webserver to serve QR
       if (webQrFlag)
-	{
-	  //if needed, use TLS
-	  if (tlsFlag)
-	    {
-	      ifstream keyRead{key};
-	      if (!keyRead)
-		throw(runtime_error{"Can't open key file"s});
-	      keyRead.get(key_pem, fileSize-1,'\0');
-	      ifstream certRead{cert};
-	      if (!certRead)
-		throw(runtime_error{"Can't open cert file"s});
-	      certRead.get(cert_pem, fileSize-1,'\0');
-	    }
-
-	  struct MHD_Daemon * d;
-	  globalChallenge = challenge;
-	  globalPass = getNonce(10);
-	  globalUser = user.substr(0, user.find('\0'));
-	  d = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION | useTls,
-			       0,
-			       nullptr,
-			       nullptr,
-			       &answer_to_connection,
-			       nullptr,
-			       MHD_OPTION_HTTPS_MEM_KEY, key_pem,
-			       MHD_OPTION_HTTPS_MEM_CERT, cert_pem,
-			       MHD_OPTION_END);
-	  if (!d)
-	    {
-	      clearMsg = "\nFailed starting server for QR "s + clearMsg;
-	    } else {
-	    stringstream ss{};
-	    auto dinfo{MHD_get_daemon_info(d, MHD_DAEMON_INFO_BIND_PORT)};
-	    ss<<"\nFor QR point your browser at http"s << (tlsFlag?"s"s:""s) << "://<this-host>:"s<<dinfo->port;
-	    if (globalAuth)
-	      ss<<"\nAuthenticate as '" << globalUser << "' and '"s<<globalPass<<"'";
-	    clearMsg = ss.str() + clearMsg;
-	  }
-	}
+	clearMsg = qrServer.start() + clearMsg;
 
       //get a response from the user
       auto response{converse<string>(pamh, challenge + clearMsg)};
-
-      if (webQrFlag && d)
-	{
-	  MHD_stop_daemon(d);//TODO: RAII
-	}
 
       //verify that the user supplied the correct response in time
       auto timeOut{chrono::system_clock::now() + 10min};
