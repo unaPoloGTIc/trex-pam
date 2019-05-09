@@ -51,8 +51,8 @@ using namespace std;
 #define DEFAULT_USER "nobody"
 
 /*
-RAII wrapper around PAM's conversation convention.
-Presents *in* to the user and returns the reply that was supplied.
+  RAII wrapper around PAM's conversation convention.
+  Presents *in* to the user and returns the reply that was supplied.
 */
 template<typename resp>
 resp converse(pam_handle_t *pamh, string in)
@@ -90,8 +90,8 @@ resp converse(pam_handle_t *pamh, string in)
 }
 
 /*
-RAII class to release gpgme keys when leaving scope.
- */
+  RAII class to release gpgme keys when leaving scope.
+*/
 class keyRaii{
 private:
   gpgme_key_t key;
@@ -112,59 +112,127 @@ public:
 };
 
 /*
-RAII wrapper around GPGME encryption operations.
- */
+  RAII class to release gpgme data when leaving scope.
+*/
+class gpgme_data_raii{
+private:
+  gpgme_data_t data = nullptr;
+  gpgme_error_t err;
+public:
+  gpgme_data_raii(const string& str)
+  {
+    if (auto err{gpgme_data_new_from_mem(&data,str.c_str(), str.length(), 1)}; err != GPG_ERR_NO_ERROR)
+      throw runtime_error("Can't init gpgme data from mem "s + string{gpgme_strerror(err)});
+  }
+  gpgme_data_raii()
+  {
+    if (auto err{gpgme_data_new(&data)}; err != GPG_ERR_NO_ERROR)
+      throw runtime_error("Can't init gpgme empty data "s + string{gpgme_strerror(err)});
+  }
+
+  gpgme_data_t& get()
+  {
+    return data;
+  }
+
+  ~gpgme_data_raii(){
+    if(data)
+      gpgme_data_release (data);
+  }
+};
+
+/*
+  RAII class to release gpgme ctx when leaving scope.
+*/
+class gpgme_ctx_raii{
+private:
+  gpgme_ctx_t ctx;
+  static const gpgme_protocol_t proto{GPGME_PROTOCOL_OpenPGP};
+public:
+  gpgme_ctx_raii(string gpgHome)
+  {
+    gpgme_check_version (NULL);
+    if (auto err{gpgme_engine_check_version(proto)}; err != GPG_ERR_NO_ERROR)
+      throw runtime_error("Can't init libgpgme "s + string{gpgme_strerror(err)});
+
+    if (auto err{gpgme_new(&ctx)}; err != GPG_ERR_NO_ERROR)
+      throw runtime_error("Can't create libgpgme context "s + string{gpgme_strerror(err)});
+    if (auto err{gpgme_ctx_set_engine_info(ctx, proto, NULL, gpgHome.c_str())}; err != GPG_ERR_NO_ERROR)
+      throw runtime_error("Can't set libgpgme engine info "s +  string{gpgme_strerror(err)});
+    if (auto err{gpgme_set_protocol(ctx, proto)}; err != GPG_ERR_NO_ERROR)
+      throw runtime_error("Can't set libgpgme protocol "s + string{gpgme_strerror(err)});
+
+    gpgme_set_armor (ctx, 1);
+  }
+
+  gpgme_ctx_t& get()
+  {
+    return ctx;
+  }
+
+  ~gpgme_ctx_raii()
+  {
+    if(ctx)
+      gpgme_release(ctx);
+  }
+};
+
+/*
+  RAII wrapper around GPGME encryption operations.
+*/
 class encrypter {
 private:
-  string plain;
-  gpgme_error_t err;
-  gpgme_ctx_t ctx;
+  string plain, gpgHome;
   gpgme_decrypt_flags_t flags = static_cast<gpgme_decrypt_flags_t>(0);
-  gpgme_data_t in = NULL;
-  gpgme_data_t out = NULL;
-  gpgme_protocol_t proto{GPGME_PROTOCOL_OpenPGP};
 
   /*
     RAII helper to encrypt ro the public key of *recp*, optionally signing as *sender*
-   */
+  */
   string encPub(string recp, bool trust = false, bool sign = true, string sender = ""s)
   {
+    gpgme_ctx_raii ctx(gpgHome);
+    gpgme_data_raii in{plain};
+    gpgme_data_raii out{};
+
+    string recpFormatted{"--\n "s + recp + " \n"s};
+    gpgme_encrypt_flags_t params{trust?GPGME_ENCRYPT_ALWAYS_TRUST:static_cast<gpgme_encrypt_flags_t>(0)};
     if (sign)
       {
-	if (auto err{gpgme_op_keylist_start (ctx, sender.c_str(), 0)}; err != GPG_ERR_NO_ERROR)
+	if (auto err{gpgme_op_keylist_start (ctx.get(), sender.c_str(), 0)}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("gpgme_op_keylist_start() failed"s + string{gpgme_strerror(err)});
 	keyRaii key;
-	if (auto err{gpgme_op_keylist_next (ctx, &key.get())}; err != GPG_ERR_NO_ERROR)
+	if (auto err{gpgme_op_keylist_next (ctx.get(), &key.get())}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("gpgme_op_keylist_next() failed "s + string{gpgme_strerror(err)});
-	if (auto err{gpgme_op_keylist_end(ctx)}; err != GPG_ERR_NO_ERROR)
-	   throw runtime_error("gpgme_op_keylist_end() failed "s + string{gpgme_strerror(err)});
-	if (auto err{gpgme_signers_add (ctx, key.get())}; err != GPG_ERR_NO_ERROR)
+	if (auto err{gpgme_op_keylist_end(ctx.get())}; err != GPG_ERR_NO_ERROR)
+	  throw runtime_error("gpgme_op_keylist_end() failed "s + string{gpgme_strerror(err)});
+	if (auto err{gpgme_signers_add (ctx.get(), key.get())}; err != GPG_ERR_NO_ERROR)
 	  throw runtime_error("Can't add signer "s + sender + " " + string{gpgme_strerror(err)});
-	if (auto err{gpgme_op_encrypt_sign_ext(ctx,
+	if (auto err{gpgme_op_encrypt_sign_ext(ctx.get(),
 					       NULL,
-					       string{"--\n "s + recp + " \n"s}.c_str(),
-					       trust?GPGME_ENCRYPT_ALWAYS_TRUST:static_cast<gpgme_encrypt_flags_t>(0),
-					       in,
-					       out)}; err != GPG_ERR_NO_ERROR)
+					       recpFormatted.c_str(),
+					       params,
+					       in.get(),
+					       out.get())}; err != GPG_ERR_NO_ERROR)
 	  {
 	    throw runtime_error("Can't encrypt/sign with keys "s + recp + ", " + sender + " : " + string{gpgme_strerror(err)});
 	  }
       }
     else
       {
-	if (auto err{gpgme_op_encrypt_ext(ctx,
+	if (auto err{gpgme_op_encrypt_ext(ctx.get(),
 					  NULL,
-					  string{"--\n "s + recp + " \n"s}.c_str(),
-					  trust?GPGME_ENCRYPT_ALWAYS_TRUST:static_cast<gpgme_encrypt_flags_t>(0),
-					  in,
-					  out)}; err != GPG_ERR_NO_ERROR)
-	  throw runtime_error("Can't encrypt pubkey "s +  string{gpgme_strerror(err)});
+					  recpFormatted.c_str(),
+					  params,
+					  in.get(),
+					  out.get())}; err != GPG_ERR_NO_ERROR)
+	  throw runtime_error("Can't encrypt to "s + recp + " "s +  string{gpgme_strerror(err)});
       }
 
-    char buf[501] = "";
-    int ret = gpgme_data_seek (out, 0, SEEK_SET);
+    constexpr int buffsize{500};
+    char buf[buffsize + 1] = "";
+    int ret = gpgme_data_seek (out.get(), 0, SEEK_SET);
     string s{};
-    while ((ret = gpgme_data_read (out, buf, 500)) > 0)
+    while ((ret = gpgme_data_read (out.get(), buf, buffsize)) > 0)
       {
 	buf[ret] = '\0';
 	s += string{buf};
@@ -174,37 +242,11 @@ private:
 
 public:
 
-  ~encrypter()
-  {
-    gpgme_data_release (out);
-    gpgme_data_release (in);
-    gpgme_release (ctx);
-  }
-
   /*
     RAII wrapper around a gpgme engine
-   */
-  encrypter(string s, string gpgHome):plain{s}
-  {
-    gpgme_check_version (NULL);
-    if (auto err{gpgme_engine_check_version(proto)}; err != GPG_ERR_NO_ERROR)
-      throw runtime_error("Can't init libgpgme "s +  string{gpgme_strerror(err)});
-
-    if (auto err{gpgme_new(&ctx)}; err != GPG_ERR_NO_ERROR)
-      throw runtime_error("Can't create libgpgme context "s +  string{gpgme_strerror(err)});
-
-    if (auto err{gpgme_ctx_set_engine_info(ctx, proto, NULL, gpgHome.c_str())}; err != GPG_ERR_NO_ERROR)
-      throw runtime_error("Can't set libgpgme engine info "s +  string{gpgme_strerror(err)});
-
-    if (auto err{gpgme_set_protocol(ctx, proto)}; err != GPG_ERR_NO_ERROR)
-      throw runtime_error("Can't set libgpgme protocol "s +  string{gpgme_strerror(err)});
-    gpgme_set_armor (ctx, 1);
-    if (auto err{gpgme_data_new_from_mem(&in,plain.c_str(), plain.size()+1, 1)}; err
-	!= GPG_ERR_NO_ERROR)
-      throw runtime_error("Can't create libgpgme data in "s +  string{gpgme_strerror(err)});
-    if (auto err{gpgme_data_new (&out)}; err != GPG_ERR_NO_ERROR)
-      throw runtime_error("Can't create libgpgme data out "s +  string{gpgme_strerror(err)});
-  }
+  */
+  encrypter(string s, string gpghome):plain{s},gpgHome{gpghome}
+  {}
 
   string ciphertext(string recp, bool trust = false, bool sign = true, string sender = "")
   {
@@ -213,8 +255,8 @@ public:
 };
 
 /*
-returns a (hopefully) uniformlly random alphanumeric (lower+uppercase) string of length *len*
- */
+  returns a (hopefully) uniformlly random alphanumeric (lower+uppercase) string of length *len*
+*/
 string getNonce(int len = 10)
 {
   static string chars{"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"s};
@@ -232,7 +274,7 @@ string getNonce(int len = 10)
 
 /*
   Helper class to get challenges.
- */
+*/
 class challengeHandler {
 private:
   
@@ -255,7 +297,7 @@ public:
 
 /*
   helper to parse a config line into parameters
- */
+*/
 class userRecord {
 private:
   string trustStr;
@@ -287,7 +329,7 @@ public:
 
 /*
   helper to parse a config file
- */
+*/
 class userDb {
 private:
   userRecord rec;
@@ -324,7 +366,7 @@ public:
 
 /*
   RAII class to temporarilly drop privilleges using setegid,seteuid
- */
+*/
 class privDropper{
 private:
   uid_t origUid;
@@ -363,7 +405,7 @@ string globalChallenge{};
 
 /*
   wrapper around libcppgenqr to get a qr representation of a string
- */
+*/
 string getQR()
 {
   const qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(globalChallenge.c_str(), qrcodegen::QrCode::Ecc::HIGH);
@@ -399,7 +441,7 @@ public:
 /*
   called by libmicrohttpd
   serve a QR image over http/s and optionally authenticate the requester.
- */
+*/
 static int
 answer_to_connection (void *cls, struct MHD_Connection *connection,
 		      const char *url, const char *method,
@@ -458,11 +500,11 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
 }
 
 /*
-helper to make sense of the QR parameter in the config
- */
+  helper to make sense of the QR parameter in the config
+*/
 auto handleAuthTlsParams(string webQr)
 {
- bool webQrFlag{(webQr=="webQrAuthTls")||//TODO: refactor strings
+  bool webQrFlag{(webQr=="webQrAuthTls")||//TODO: refactor strings
 		 (webQr=="webQrNoAuthTls")||
 		 (webQr=="webQrAuthNoTls")||
 		 (webQr=="webQrNoAuthNoTls")};
@@ -476,7 +518,7 @@ auto handleAuthTlsParams(string webQr)
 
 /*
   RAII class to hold a webserver to serve QR codes
- */
+*/
 class webServerRaii {
 private:
   struct MHD_Daemon * d{nullptr};
@@ -486,18 +528,18 @@ private:
   bool tlsFlag;
 public:
   webServerRaii(bool _tlsFlag = true, string key = ""s, string cert = ""s):tlsFlag{_tlsFlag} {
-	  //if needed, use TLS
-	  if (tlsFlag)
-	    {
-	      ifstream keyRead{key};
-	      if (!keyRead)
-		throw(runtime_error{"Can't open key file"s});
-	      keyRead.get(key_pem, fileSize-1,'\0');
-	      ifstream certRead{cert};
-	      if (!certRead)
-		throw(runtime_error{"Can't open cert file"s});
-	      certRead.get(cert_pem, fileSize-1,'\0');
-	    }
+    //if needed, use TLS
+    if (tlsFlag)
+      {
+	ifstream keyRead{key};
+	if (!keyRead)
+	  throw(runtime_error{"Can't open key file"s});
+	keyRead.get(key_pem, fileSize-1,'\0');
+	ifstream certRead{cert};
+	if (!certRead)
+	  throw(runtime_error{"Can't open cert file"s});
+	certRead.get(cert_pem, fileSize-1,'\0');
+      }
   }
 
   //start serving QR, return a string description to display to the user
@@ -541,7 +583,7 @@ public:
   main event.
   create a challenge, get a response, 
   validate that the user is able to decrypt using a key that was preconfigured.
- */
+*/
 PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, const char **argv )
 {
 #ifdef HAVE_PAM_FAIL_DELAY
