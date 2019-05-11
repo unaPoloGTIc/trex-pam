@@ -9,6 +9,7 @@
 extern "C" {
 #include <security/pam_appl.h>
 #include <gpgme.h>
+#include <curl/curl.h>
 }
 
 using namespace std;
@@ -74,10 +75,10 @@ TEST_F(Unit, verifyUnusedFunctions)
 
 //TODO: add tests that verify that module throws the right exceptions
 
-vector<string> globalRet{};//can't move to fixture
+vector<string> globalRet{};//TODO: move to fixture
 
 int badConvFunc(int num_msg, const struct pam_message **msg,
-	     struct pam_response **resp, void *appdata_ptr)//can't move to fixture
+	     struct pam_response **resp, void *appdata_ptr)//TODO: move to fixture
 {
   globalRet.push_back(string{msg[0]->msg});
   char *deletedByPam = new char[100];
@@ -91,7 +92,7 @@ int badConvFunc(int num_msg, const struct pam_message **msg,
 }
 
 int goodConvFunc(int num_msg, const struct pam_message **msg,
-	     struct pam_response **resp, void *appdata_ptr)//can't move to fixture
+	     struct pam_response **resp, void *appdata_ptr)//TODO: move to fixture
 {
   char *deletedByPam = new char[100];
   pam_response rr{};
@@ -105,7 +106,7 @@ int goodConvFunc(int num_msg, const struct pam_message **msg,
   gpgme_data_t in = NULL;
   gpgme_data_t out = NULL;
 
-  gpgme_check_version (NULL);
+  gpgme_check_version (NULL);//TODO: use a gpgme raii wrapper
   gpgme_engine_check_version(GPGME_PROTOCOL_OpenPGP);
 
   gpgme_new(&ctx);
@@ -130,7 +131,6 @@ int goodConvFunc(int num_msg, const struct pam_message **msg,
     }
   string pre{ss.str()};
   pre.replace(pre.end()-1,pre.end(),"");
-  string post(pre,pre.find_last_of(" ")+1);
   strcpy(deletedByPam, ss.str().c_str());
   gpgme_data_release (out);
   gpgme_data_release (in);
@@ -188,7 +188,7 @@ TEST_F(Unit, testGoodResponse)
 TEST_F(Unit, testDecryptedChallengeUnique)
 {
   vector<string> allChallenges{};
-  for (int i = 0; i < 10; i++)
+  for (int i = 0; i < 3; i++)
     {
       pam_conversation.conv = &badConvFunc;
       pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation));
@@ -238,9 +238,141 @@ TEST_F(Unit, testChallengeIsSignedByAppliance)
 
 //TODO: test that timeout fails
 
-//TODO: test the QR challenge with basic-auth, https
+class curly{
+private:
+public:
+  CURL *curl;
+  stringstream ss;
+  curly(string host, string name, string pass):curl{curl_easy_init()}
+  {
+    ss.clear();
+    if (!curl)
+      throw runtime_error{"can't init curl\n"s};
+    //TODO: remove if unneeded
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+    curl_easy_setopt(curl, CURLOPT_URL, host.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ss);
+    curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_easy_setopt(curl, CURLOPT_USERPWD, string{name+":"+pass}.c_str());
+    auto res{curl_easy_perform(curl)};
+  }
+
+  ~curly()
+  {
+    curl_easy_cleanup(curl);
+  }
+
+  static size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp)
+  {
+    auto streamPtr{static_cast<stringstream*>(userp)};
+    *streamPtr << string{static_cast<char*>(buffer)};
+    return nmemb;
+  }
+
+  string get()
+  {
+    return ss.str();
+  }
+};
+
+int curlyConvFunc(int num_msg, const struct pam_message **msg,
+	     struct pam_response **resp, void *appdata_ptr)//can't move to fixture
+{
+  string chal{msg[0]->msg};
+  chal = chal.substr(chal.find(">:"));
+  chal = chal.substr(0, chal.find_last_of("'"));
+
+  string host{static_cast<char*>(appdata_ptr)};
+  string port{chal.substr(chal.find(":")+1, chal.find("\n")-2)};
+  string name{chal.substr(chal.find(" '")+2)};
+  name = name.substr(0, name.find("' "));
+  string pass{chal.substr(chal.rfind(" '")+2)};
+
+  curly c{host+port, name, pass};
+  globalRet.push_back(c.get());
+
+  char *deletedByPam = new char[100];
+  strcpy(deletedByPam,  "bad_response");
+  pam_response rr{};
+
+  rr.resp = deletedByPam;
+  *resp = &rr;
+
+  return PAM_SUCCESS;
+}
+
+int curlyWrongPassConvFunc(int num_msg, const struct pam_message **msg,
+	     struct pam_response **resp, void *appdata_ptr)//can't move to fixture
+{
+  string chal{msg[0]->msg};
+  chal = chal.substr(chal.find(">:"));
+  chal = chal.substr(0, chal.find_last_of("'"));
+
+  string port{chal.substr(chal.find(":")+1, chal.find("\n")-2)};
+  string name{chal.substr(chal.find(" '")+2)};
+  name = name.substr(0, name.find("' "));
+
+  curly c{"https://localhost:"s+port, name, "wrong password"s};
+  globalRet.push_back(c.get());
+
+  char *deletedByPam = new char[100];
+  strcpy(deletedByPam,  "bad_response");
+  pam_response rr{};
+
+  rr.resp = deletedByPam;
+  *resp = &rr;
+
+  return PAM_SUCCESS;
+}
+
+TEST_F(Unit, getQR)
+{
+  pam_conversation.conv = &curlyConvFunc;
+  char host[] = "https://localhost:";
+  pam_conversation.appdata_ptr = host;
+  ASSERT_EQ(pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation)), PAM_SUCCESS);
+  globalRet.clear();
+  pam_authenticate(pamh, 0);
+
+  string qr{globalRet[0]};
+
+  ASSERT_GE(qr.size(), 100'000);
+  ASSERT_NE(qr.find("<svg xmlns=\"http://www.w3.org/2000/svg\""), string::npos);
+  ASSERT_NE(qr.find("</svg>"), string::npos);
+}
+
+TEST_F(Unit, qrFailHttp)
+{
+  pam_conversation.conv = &curlyConvFunc;
+  char host[] = "http://localhost:";
+  pam_conversation.appdata_ptr = host;
+  ASSERT_EQ(pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation)), PAM_SUCCESS);
+  globalRet.clear();
+  pam_authenticate(pamh, 0);
+
+  string qr{globalRet[0]};
+
+  ASSERT_EQ(qr.size(), 0);
+}
+
+TEST_F(Unit, qrFailWrongPass)
+{
+  pam_conversation.conv = &curlyWrongPassConvFunc;
+  pam_conversation.appdata_ptr = nullptr;
+  ASSERT_EQ(pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation)), PAM_SUCCESS);
+  globalRet.clear();
+  pam_authenticate(pamh, 0);
+
+  string err{globalRet[0]};
+  ASSERT_EQ(err,"<html><body>Invalid credentials</body></html>"s);
+}
 
 int main(int argc, char **argv) {
+  curl_global_init(CURL_GLOBAL_ALL);
   ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  auto res{RUN_ALL_TESTS()};
+  curl_global_cleanup();
+  return res;
 }

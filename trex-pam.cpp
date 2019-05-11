@@ -408,7 +408,7 @@ string globalChallenge{};
 */
 string getQR()
 {
-  const qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(globalChallenge.c_str(), qrcodegen::QrCode::Ecc::HIGH);
+  const qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(globalChallenge.c_str(), qrcodegen::QrCode::Ecc::QUARTILE);//TODO: in order to use HIGH, split the challenge into 10556 bits pieces or risk 'qrcodegen::data_too_long' exception
   return qr.toSvgString(1);
 }
 
