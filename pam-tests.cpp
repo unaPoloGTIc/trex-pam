@@ -369,10 +369,20 @@ TEST_F(Unit, qrFailWrongPass)
   ASSERT_EQ(err,"<html><body>Invalid credentials</body></html>"s);
 }
 
+class globalRaii{
+public:
+  globalRaii()
+  {
+    curl_global_init(CURL_GLOBAL_ALL);
+  }
+  ~globalRaii()
+  {
+    curl_global_cleanup();
+  }
+};
+
 int main(int argc, char **argv) {
-  curl_global_init(CURL_GLOBAL_ALL);
+  globalRaii init{};
   ::testing::InitGoogleTest(&argc, argv);
-  auto res{RUN_ALL_TESTS()};
-  curl_global_cleanup();
-  return res;
+  return RUN_ALL_TESTS();
 }
