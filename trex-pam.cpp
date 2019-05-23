@@ -655,10 +655,10 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
 	clearMsg = qrServer.start() + clearMsg;
 
       //get a response from the user
+      auto timeOut{chrono::system_clock::now() + 10min};
       auto response{converse<string>(pamh, challenge + clearMsg)};
 
       //verify that the user supplied the correct response in time
-      auto timeOut{chrono::system_clock::now() + 10min};
       if (response == pass && timeOut > chrono::system_clock::now())
 	{
 	  return PAM_SUCCESS;
