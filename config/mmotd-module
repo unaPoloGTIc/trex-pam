@@ -1,2 +1,2 @@
-auth    sufficient   /home/sharon/dev/mmodt/public/trex-pam.so
-#auth    required    /home/sharon/dev/mmodt/public/trex-pam.so
+auth    sufficient   /home/sharon/dev/mmodt/public/otp-module/trex-pam.so
+#auth    required    /home/sharon/dev/mmodt/public/otp-module/trex-pam.so
