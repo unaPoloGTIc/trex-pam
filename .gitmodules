@@ -1,0 +1,3 @@
+[submodule "common-raii"]
+	path = common-raii
+	url = https://github.com/unaPoloGTIc/common-raii
