@@ -217,7 +217,7 @@ auto handleAuthTlsParams(string webQr)
 /*
   RAII class to hold a webserver to serve QR codes
 */
-class webServerRaii {
+class webServerRaii {//TODO: move to commonRaii
 private:
   struct MHD_Daemon * d{nullptr};
   static constexpr int fileSize{2'000};
@@ -354,7 +354,7 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
 
       //get a response from the user
       auto timeOut{chrono::system_clock::now() + 10min};
-      auto response{converse<string>(pamh, challenge + clearMsg)};
+      auto response{converse(pamh, challenge + clearMsg)};
 
       //verify that the user supplied the correct response in time
       if (response == pass && timeOut > chrono::system_clock::now())

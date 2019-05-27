@@ -1,8 +1,8 @@
 all: pam-module tests
 
 pam-module:
-	g++ -g -std=c++17 -fPIC -c trex-pam.cpp common-raii/common-raii.cpp
-	g++ -g -std=c++17 -shared -Wl,--no-undefined -o trex-pam.so trex-pam.o -lpam -lqrcodegencpp -lboost_system -lmicrohttpd `gpgme-config --cflags --libs`
+	g++ -g -std=c++17 -fPIC -c trex-pam.cpp common-raii/common-raii.cpp -Wl,--no-undefined
+	g++ -g -std=c++17 -shared -Wl,--no-undefined -o trex-pam.so trex-pam.o common-raii.o -lpam -lqrcodegencpp -lboost_system -lmicrohttpd `gpgme-config --cflags --libs`
 
 tests: pam-module
 	g++ -g pam-tests.cpp -o pam-tests -std=c++17 -lgtest -lgmock -lpthread -lpam `gpgme-config --cflags --libs` `curl-config --libs`
