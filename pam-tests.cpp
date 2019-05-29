@@ -14,6 +14,8 @@ extern "C" {
 
 using namespace std;
 
+//TODO: refactor to use commonRaii classes
+
 TEST(unitTests, emptyTest)
 {
   pam_handle_t *pamh;
