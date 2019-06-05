@@ -55,8 +55,10 @@ public:
   ~Unit()
   {
     pam_end(pamh, PAM_SUCCESS);
-    gpgme_data_release (out);
-    gpgme_data_release (in);
+    if (out)
+      gpgme_data_release (out);
+    if (in)
+      gpgme_data_release (in);
     gpgme_release (ctx);
   }
 };

@@ -43,6 +43,8 @@ Now you can ssh user@host and follow the displayed instructions.
 The module generates a random challenge for every attempted login.  
 The correct (randomized) response must be entered within 10 minutes and on the first attempt.  
 This is to prevent replay attacks.  
+Using the module with PAM's "optional" will provide no added security.__
+It's best if the corresponding secret key is nowhere near the machine.__
 
 ## Protect the module, pam config files, .auth_gpg file and the private key in all the usual ways.  
 
@@ -73,7 +75,7 @@ In which case the attacker learns nothing new.
 As stated above, a reused response will not be accepted.  
 Except in the case in which the new session's random response is the same.  
 Currently the response is a 10 chars long string consisting of lowercase, uppercase and digits.  
-If your platform has good randomness, expect that to happen at about sqrt(64^10) (about 1B+)  
+If your platform has good randomness, expect that to happen at a rate of about 1 in sqrt(64^10) (about 1B+)  
 
 ### MITM attacks:
 A man in the middle that is already capable of presenting itself to the user as the system will  

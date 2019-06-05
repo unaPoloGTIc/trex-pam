@@ -163,8 +163,8 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
 
   user = MHD_basic_auth_get_username_password (connection, &pass);
 
-  unique_ptr<char[]> userRaii(user);
-  unique_ptr<char[]> passRaii(pass);
+  unique_ptr<char[],void (*)(void*)> userRaii(user,free);//freed by C free()
+  unique_ptr<char[],void (*)(void*)> passRaii(pass,free);//freed by C free()
 
   if ( globalAuth && (!userRaii || !passRaii ||
 		      string{userRaii.get()} != globalUser ||
@@ -298,7 +298,7 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
   const char *userChar[maxUsernameSize]{nullptr};
 
   //get user name, or fail
-  if (pam_get_user(pamh, userChar, nullptr)!=PAM_SUCCESS || !userChar)
+  if (pam_get_user(pamh, userChar, nullptr)!=PAM_SUCCESS || !userChar || !*userChar)
     {
       pam_syslog(pamh, LOG_WARNING, "pam_get_user() failed");
       return PAM_USER_UNKNOWN;
