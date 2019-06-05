@@ -28,11 +28,11 @@ Place in it a line instructing the module:
 trust\notrust indicates to GPG whether to use the key if not known to be trusted or not.  
 nosign means not to sign the challenge. See security considerations below.  
 webQR will present the challenge as an QR code viewable via a browser. It can be one of these 4 strings:  
--webQrAuthTls - require http basic auth and use TLS  
--webQrNoAuthTls - skip http basic auth but use TLS  
--webQrAuthNoTls - require http basic auth and don't use TLS  
--webQrNoAuthNoTls - skip http basic auth and skip TLS  
--any other string will disable presenting the QR via a browser.  
+* webQrAuthTls - require http basic auth and use TLS  
+* webQrNoAuthTls - skip http basic auth but use TLS  
+* webQrAuthNoTls - require http basic auth and don't use TLS  
+* webQrNoAuthNoTls - skip http basic auth and skip TLS  
+* any other string will disable presenting the QR via a browser.  
 
 If TLS was requested, 2 more parameters are needed.  
 A path to the key file and a path to the certificate to use for HTTPS.  
