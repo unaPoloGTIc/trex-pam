@@ -43,8 +43,8 @@ Now you can ssh user@host and follow the displayed instructions.
 The module generates a random challenge for every attempted login.  
 The correct (randomized) response must be entered within 10 minutes and on the first attempt.  
 This is to prevent replay attacks.  
-Using the module with PAM's "optional" will provide no added security.__
-It's best if the corresponding secret key is nowhere near the machine.__
+Using the module with PAM's "optional" will provide no added security.  
+It's best if the corresponding secret key is nowhere near the machine.  
 
 ## Protect the module, pam config files, .auth_gpg file and the private key in all the usual ways.  
 
