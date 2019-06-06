@@ -74,10 +74,10 @@ public:
     if(s)
       s >> pem;
 
-    trustFlag = (trustStr=="trust"s);
-    signFlag = !(signStr=="nosign"s);
+    trustFlag = (trustStr=="trust");
+    signFlag = !(signStr=="nosign");
   }
-  auto get()
+  tuple<string, bool, string, bool, string, string, string> get()
   {
     return make_tuple(encryptTo, trustFlag, signStr, signFlag, webQr, key, pem);
   }
@@ -114,7 +114,7 @@ public:
     return hasKey;
   }
 
-  auto get()
+  tuple<string, bool, string, bool, string, string, string> get()
   {
     return rec.get();
   }
@@ -181,17 +181,17 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
   auto qr{getQR()};
   string strayXml{R"(<?xml version="1.0" encoding="UTF-8"?>)"};
   string strayDoc{R"(<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">)"};
-  qr.replace(qr.find(strayXml), strayXml.length(),""s);
-  qr.replace(qr.find(strayDoc), strayDoc.length(),""s);
-  auto content = "<!DOCTYPE html><html><head>"s+
+  qr.replace(qr.find(strayXml), strayXml.length(),"");
+  qr.replace(qr.find(strayDoc), strayDoc.length(),"");
+  string content = string{"<!DOCTYPE html><html><head>"}+
     R"(<style>
      figure {
          max-width: 17cm;
      }
      </style>)" +
-    "<title>QR challenge</title></head><body><figure>"s +
+    "<title>QR challenge</title></head><body><figure>" +
     qr +
-    "</figure></body></html>"s;
+    "</figure></body></html>";
   auto response{mhdRespRaii(content)};
   ret = MHD_queue_response (connection, MHD_HTTP_OK, response.get());
   return ret;
@@ -200,7 +200,7 @@ answer_to_connection (void *cls, struct MHD_Connection *connection,
 /*
   helper to make sense of the QR parameter in the config
 */
-auto handleAuthTlsParams(string webQr)
+tuple<bool, bool> handleAuthTlsParams(string webQr)
 {
   bool webQrFlag{(webQr=="webQrAuthTls")||//TODO: refactor strings
 		 (webQr=="webQrNoAuthTls")||
@@ -220,22 +220,22 @@ auto handleAuthTlsParams(string webQr)
 class webServerRaii {//TODO: move to commonRaii
 private:
   struct MHD_Daemon * d{nullptr};
-  static constexpr int fileSize{2'000};
+  static constexpr int fileSize{2000};
   char key_pem[fileSize]{""};
   char cert_pem[fileSize]{""};
   bool tlsFlag;
 public:
-  webServerRaii(bool _tlsFlag = true, string key = ""s, string cert = ""s):tlsFlag{_tlsFlag} {
+  webServerRaii(bool _tlsFlag = true, string key = "", string cert = ""):tlsFlag{_tlsFlag} {
     //if needed, use TLS
     if (tlsFlag)
       {
 	ifstream keyRead{key};
 	if (!keyRead)
-	  throw(runtime_error{"Can't open key file"s});
+	  throw(runtime_error{"Can't open key file"});
 	keyRead.get(key_pem, fileSize-1,'\0');
 	ifstream certRead{cert};
 	if (!certRead)
-	  throw(runtime_error{"Can't open cert file"s});
+	  throw(runtime_error{"Can't open cert file"});
 	certRead.get(cert_pem, fileSize-1,'\0');
       }
   }
@@ -257,13 +257,13 @@ public:
 			 MHD_OPTION_END);
     if (!d)
       {
-	clearMsg = "\nFailed starting server for QR "s + clearMsg;
+	clearMsg = "\nFailed starting server for QR " + clearMsg;
       } else {
       stringstream ss{};
       auto dinfo{MHD_get_daemon_info(d, MHD_DAEMON_INFO_BIND_PORT)};
-      ss<<"\nFor QR point your browser at http"s << (tlsFlag?"s"s:""s) << "://<this-host>:"s<<dinfo->port;
+      ss<<"\nFor QR point your browser at http" << (tlsFlag?"":"") << "://<this-host>:"<<dinfo->port;
       if (globalAuth)
-	ss<<"\nAuthenticate as '" << globalUser << "' and '"s<<globalPass<<"'";
+	ss<<"\nAuthenticate as '" << globalUser << "' and '"<<globalPass<<"'";
       clearMsg = ss.str() + clearMsg;
     }
     return clearMsg;
@@ -285,7 +285,7 @@ public:
 PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, const char **argv )
 {
 #ifdef HAVE_PAM_FAIL_DELAY
-  pam_fail_delay (pamh, 2'000'000);
+  pam_fail_delay (pamh, 2000000);
 #endif /* HAVE_PAM_FAIL_DELAY */
 
   if (flags & PAM_SILENT)
@@ -326,18 +326,22 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
     }
 
   //get all params from parsed config file
-  auto [reciever, trust, signAs, sign, webQr, key, cert] = db.get();
-  auto [webQrFlag, tlsFlag] = handleAuthTlsParams(webQr);
+  string reciever, signAs, webQr, key, cert;
+  bool trust, sign;
+  tie(reciever, trust, signAs, sign, webQr, key, cert) = db.get();
+  bool webQrFlag, tlsFlag;
+  tie(webQrFlag, tlsFlag) = handleAuthTlsParams(webQr);
 
   try
     {
       challengeHandler ver{};
       auto gpHomeCstr{pam_getenv(pamh, "GNUPGHOME")};
-      string gnupgHome{gpHomeCstr?gpHomeCstr:".gnupg"s};
+      string gnupgHome{gpHomeCstr?gpHomeCstr:".gnupg"};
 
       //generate challenge
-      auto [challenge, pass]{ver.getChallenge(homeDir+"/"s+gnupgHome, reciever, trust, sign, signAs)};
-      auto clearMsg{"\nTimeout set for 10 minutes\nResponse:"s};
+      string challenge, pass;
+      tie(challenge, pass) = ver.getChallenge(homeDir+"/"+gnupgHome, reciever, trust, sign, signAs);
+      string clearMsg{"\nTimeout set for 10 minutes\nResponse:"};
 
       //hold a non running webserver.
       //  must be declared in this scope.
@@ -353,7 +357,8 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
 	clearMsg = qrServer.start() + clearMsg;
 
       //get a response from the user
-      auto timeOut{chrono::system_clock::now() + 10min};
+      chrono::minutes tenMin{10};
+      auto timeOut{chrono::system_clock::now() + tenMin};
       auto response{converse(pamh, challenge + clearMsg)};
 
       //verify that the user supplied the correct response in time
@@ -367,13 +372,15 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
   //handle exceptions
   catch(const runtime_error& ex)
     {
-      string errMsg{"internal exception thrown: "s + ex.what()};
+      string errMsg{"internal exception thrown: "};
+      errMsg += ex.what();
       pam_syslog(pamh, LOG_WARNING, errMsg.c_str() );
       return PAM_AUTH_ERR;
     }
   catch(const exception& ex)
     {
-      string errMsg{"non internal exception thrown: "s + ex.what()};
+      string errMsg{"non internal exception thrown: "};
+      errMsg += ex.what();
       pam_syslog(pamh, LOG_WARNING, errMsg.c_str());
       return PAM_AUTH_ERR;
     }
