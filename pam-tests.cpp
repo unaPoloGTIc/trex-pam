@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <regex>
 
@@ -241,8 +242,26 @@ TEST_F(Unit, testChallengeIsSignedByAppliance)
   ASSERT_EQ(res->signatures->status,GPG_ERR_NO_ERROR);
   ASSERT_EQ(res->signatures->validity,GPGME_VALIDITY_FULL);//this just means we trust the key
   ASSERT_NE(res->signatures->fpr ,nullptr);
-  ASSERT_STREQ(res->signatures->fpr ,"F546A72A7A1D59E8753958AB358F22DA9DB0B9F0");//replace as needed
+  gpgme_key_t key;
+  auto fk{gpgme_get_key (ctx, res->signatures->fpr, &key, 1)};
+  ASSERT_EQ(fk,GPG_ERR_NO_ERROR);
+  ASSERT_NE(key->uids ,nullptr);
+  auto pw{getpwuid(geteuid())};
+  ifstream f{pw->pw_dir + "/.auth_gpg"s};
+  string l, signer;
+  while (getline(f, l))
+    {
+      if (l.length() == 0 || l[0]=='#')
+	continue;
+      stringstream s{l};
+      s >> signer;//ignore first field
+      s >> signer;//ignore second field
+      s >> signer;
+      break;
+    }
+  ASSERT_EQ(string{key->uids[0].email} ,signer);
   ASSERT_TRUE(res->signatures->next == nullptr);
+  gpgme_key_release (key);
 }
 
 //TODO: test that timeout fails
@@ -343,7 +362,7 @@ TEST_F(Unit, getQR)
   ASSERT_EQ(pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation)), PAM_SUCCESS);
   globalRet.clear();
   pam_authenticate(pamh, 0);
-
+  ASSERT_NE(0, globalRet.size());
   string qr{globalRet[0]};
 
   ASSERT_GE(qr.size(), 100'000);
@@ -359,7 +378,7 @@ TEST_F(Unit, qrFailHttp)
   ASSERT_EQ(pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation)), PAM_SUCCESS);
   globalRet.clear();
   pam_authenticate(pamh, 0);
-
+  ASSERT_NE(0, globalRet.size());
   string qr{globalRet[0]};
 
   ASSERT_EQ(qr.size(), 0);
@@ -372,7 +391,7 @@ TEST_F(Unit, qrFailWrongPass)
   ASSERT_EQ(pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation)), PAM_SUCCESS);
   globalRet.clear();
   pam_authenticate(pamh, 0);
-
+  ASSERT_NE(0, globalRet.size());
   string err{globalRet[0]};
   ASSERT_EQ(err,"<html><body>Invalid credentials</body></html>"s);
 }
