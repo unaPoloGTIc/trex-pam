@@ -22,10 +22,9 @@ TEST(unitTests, emptyTest)
 {
   pam_handle_t *pamh;
   struct pam_conv pam_conversation;
-  string module_name{"mmotd-module"s};
   auto pw{getpwuid(geteuid())};
   string user_name{pw->pw_name};
-  ASSERT_EQ(pam_start(module_name.c_str(), user_name.c_str(), &pam_conversation, &pamh), PAM_SUCCESS);
+  ASSERT_EQ(pam_start("mmotd-module", user_name.c_str(), &pam_conversation, &pamh), PAM_SUCCESS);
   ASSERT_EQ(pam_authenticate(pamh, PAM_SILENT), PAM_PERM_DENIED);
   ASSERT_EQ(pam_end(pamh, PAM_SUCCESS), PAM_SUCCESS);
 }
@@ -153,7 +152,7 @@ TEST_F(Unit, testUserWithNoAuth_gpg)
   ASSERT_EQ(pam_authenticate(pamh, 0),PAM_PERM_DENIED);
 }
 
-TEST_F(Unit, testSettingNonexistingInSystemUser)
+TEST_F(Unit, testSettingNonexistingUser)
 {
   //make sure you don't have a user called nouserInSystem
   ASSERT_EQ(pam_set_item(pamh, PAM_USER,"nouserInSystem"),PAM_SUCCESS);
@@ -258,7 +257,6 @@ public:
     ss.clear();
     if (!curl)
       throw runtime_error{"can't init curl\n"s};
-    //TODO: remove if unneeded
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
@@ -288,7 +286,7 @@ public:
 };
 
 int curlyConvFunc(int num_msg, const struct pam_message **msg,
-	     struct pam_response **resp, void *appdata_ptr)//can't move to fixture
+	     struct pam_response **resp, void *appdata_ptr)
 {
   string chal{msg[0]->msg};
   chal = chal.substr(chal.find(">:"));
@@ -314,7 +312,7 @@ int curlyConvFunc(int num_msg, const struct pam_message **msg,
 }
 
 int curlyWrongPassConvFunc(int num_msg, const struct pam_message **msg,
-	     struct pam_response **resp, void *appdata_ptr)//can't move to fixture
+	     struct pam_response **resp, void *appdata_ptr)
 {
   string chal{msg[0]->msg};
   chal = chal.substr(chal.find(">:"));
