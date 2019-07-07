@@ -10,6 +10,8 @@ extern "C" {
 #include <security/pam_appl.h>
 #include <gpgme.h>
 #include <curl/curl.h>
+#include <sys/types.h>
+#include <pwd.h>
 }
 
 using namespace std;
@@ -20,8 +22,9 @@ TEST(unitTests, emptyTest)
 {
   pam_handle_t *pamh;
   struct pam_conv pam_conversation;
-  string module_name{"mmotd-module"s};//valgrind is giving me much pain, unjustly I think.
-  string user_name{"sharon"s};
+  string module_name{"mmotd-module"s};
+  auto pw{getpwuid(geteuid())};
+  string user_name{pw->pw_name};
   ASSERT_EQ(pam_start(module_name.c_str(), user_name.c_str(), &pam_conversation, &pamh), PAM_SUCCESS);
   ASSERT_EQ(pam_authenticate(pamh, PAM_SILENT), PAM_PERM_DENIED);
   ASSERT_EQ(pam_end(pamh, PAM_SUCCESS), PAM_SUCCESS);
@@ -40,7 +43,8 @@ protected:
 public:
   Unit()
   {
-    pam_start("mmotd-module", "sharon", &pam_conversation, &pamh);
+    auto pw{getpwuid(geteuid())};
+    pam_start("mmotd-module", pw->pw_name, &pam_conversation, &pamh);
 
     gpgme_check_version (NULL);
     gpgme_engine_check_version(GPGME_PROTOCOL_OpenPGP);
@@ -49,7 +53,7 @@ public:
     gpgme_ctx_set_engine_info(ctx,
 			      GPGME_PROTOCOL_OpenPGP,
 			      NULL,
-			      "/home/sharon/.gnupg");
+			      "~/.gnupg");
     gpgme_set_protocol(ctx, GPGME_PROTOCOL_OpenPGP);
   }
   ~Unit()
@@ -77,12 +81,11 @@ TEST_F(Unit, verifyUnusedFunctions)
   ASSERT_EQ(pam_chauthtok(pamh, 0), PAM_PERM_DENIED);
 }
 
-//TODO: add tests that verify that module throws the right exceptions
 
-vector<string> globalRet{};//TODO: move to fixture
+vector<string> globalRet{};
 
 int badConvFunc(int num_msg, const struct pam_message **msg,
-	     struct pam_response **resp, void *appdata_ptr)//TODO: move to fixture
+	     struct pam_response **resp, void *appdata_ptr)
 {
   globalRet.push_back(string{msg[0]->msg});
   char *deletedByPam = new char[100];
@@ -96,7 +99,7 @@ int badConvFunc(int num_msg, const struct pam_message **msg,
 }
 
 int goodConvFunc(int num_msg, const struct pam_message **msg,
-	     struct pam_response **resp, void *appdata_ptr)//TODO: move to fixture
+	     struct pam_response **resp, void *appdata_ptr)
 {
   char *deletedByPam = new char[100];
   pam_response rr{};
@@ -117,7 +120,7 @@ int goodConvFunc(int num_msg, const struct pam_message **msg,
   gpgme_ctx_set_engine_info(ctx,
 			    GPGME_PROTOCOL_OpenPGP,
 			    NULL,
-			    "/home/sharon/.gnupg");
+			    "~/.gnupg");
   gpgme_set_protocol(ctx, GPGME_PROTOCOL_OpenPGP);
 
   gpgme_data_new_from_mem(&in,
@@ -175,6 +178,7 @@ TEST_F(Unit,  testChallengeDecrypts)
   ASSERT_EQ(pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation)), PAM_SUCCESS);
   globalRet.clear();
   ASSERT_EQ(pam_authenticate(pamh, 0), PAM_PERM_DENIED);
+  ASSERT_NE(0, globalRet.size());
   ASSERT_EQ(gpgme_data_new_from_mem(&in,globalRet[0].c_str(),
   				    globalRet[0].size()+1,
   				    1),GPG_ERR_NO_ERROR);
@@ -198,6 +202,7 @@ TEST_F(Unit, testDecryptedChallengeUnique)
       pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation));
       globalRet.clear();
       pam_authenticate(pamh, 0);
+      ASSERT_NE(0, globalRet.size());
       gpgme_data_new_from_mem(&in,globalRet[0].c_str(),
 			      globalRet[0].size()+1,
 			      1);
@@ -226,6 +231,7 @@ TEST_F(Unit, testChallengeIsSignedByAppliance)
   globalRet.clear();
   pam_authenticate(pamh, 0);
 
+  ASSERT_NE(0, globalRet.size());
   ASSERT_EQ(gpgme_data_new_from_mem(&in,globalRet[0].c_str(),
   				    globalRet[0].size()+1,
   				    1),GPG_ERR_NO_ERROR);
