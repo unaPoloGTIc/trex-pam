@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <regex>
+#include <filesystem>
 
 extern "C" {
 #include <security/pam_appl.h>
@@ -16,6 +17,7 @@ extern "C" {
 }
 
 using namespace std;
+namespace fs = std::filesystem;
 
 //TODO: refactor to use commonRaii classes
 
@@ -408,6 +410,11 @@ public:
 
 int main(int argc, char **argv) {
   globalRaii init{};
+  string cwd{fs::current_path().string() + "/"s};
+  {
+    ofstream cnf{cwd + "config/mmotd-module"s};
+    cnf << "auth    sufficient   "s << cwd << "trex-pam.so"s << endl;
+  }
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
