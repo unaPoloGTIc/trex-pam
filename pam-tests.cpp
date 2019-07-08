@@ -136,8 +136,6 @@ int goodConvFunc(int num_msg, const struct pam_message **msg,
     {
       ss<<string{buf};
     }
-  string pre{ss.str()};
-  pre.replace(pre.end()-1,pre.end(),"");
   strcpy(deletedByPam, ss.str().c_str());
   gpgme_data_release (out);
   gpgme_data_release (in);
