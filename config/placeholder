@@ -1,0 +1,5 @@
+This is a placeholder, the tests binary will create 'mmotd-module' in this dir.
+All tests will fail on first run, once the file is created, tests should be useful.
+You can create it yourself, it should look like:
+
+auth    sufficient   $PWD/trex-pam.so
