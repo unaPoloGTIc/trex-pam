@@ -23,10 +23,8 @@ auth	required	/path/to/trex-module.so
 ### Configure users:
 For each user to utilize the module create ~username/.auth_gpg  
 Place in it a line instructing the module:  
-<email to encrypt to> <trust | notrust> <email to sign as | nosign> \<webQR specification\> [https server key] [https server certificate]  
+\<email to encrypt to\>  \<webQR specification\> [https server key] [https server certificate]  
 
-trust\notrust indicates to GPG whether to use the key if not known to be trusted or not.  
-nosign means not to sign the challenge. See security considerations below.  
 webQR will present the challenge as an QR code viewable via a browser. It can be one of these 4 strings:  
 * webQrAuthTls - require http basic auth and use TLS  
 * webQrNoAuthTls - skip http basic auth but use TLS  
@@ -66,8 +64,8 @@ In case of an attacker who tries to steal the QR via the browser but can't decry
 HTTPS: using a key and certificate trusted by the user.  
 In case of an attacker able to target the network and read/modify packets.  
 
-sign/nosign: signing the challenge may prevent an attacker from presenting to the user a fake challenge.  
-(If the attacker can't steal the signing key.)  
+DEPRECATED: sign/nosign: signing the challenge may prevent an attacker from presenting to the user a fake challenge.  
+(If the attacker can't steal the signing key. Which is on the target machine)  
 If unsigned, the attacker might fool the user to decrypt a message encrypted by the attacker.  
 In which case the attacker learns nothing new.  
 

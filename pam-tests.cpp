@@ -222,48 +222,6 @@ TEST_F(Unit, testDecryptedChallengeUnique)
   ASSERT_EQ(allChallenges.size(),uniq.size());
 }
 
-TEST_F(Unit, testChallengeIsSignedByAppliance)
-{
-  pam_conversation.conv = &badConvFunc;
-  char tmp[] = "v1 legalV1Resp";
-  pam_conversation.appdata_ptr = static_cast<void*>(tmp);
-  ASSERT_EQ(pam_set_item(pamh, PAM_CONV, static_cast<const void*>(&pam_conversation)), PAM_SUCCESS);
-  globalRet.clear();
-  pam_authenticate(pamh, 0);
-
-  ASSERT_NE(0, globalRet.size());
-  ASSERT_EQ(gpgme_data_new_from_mem(&in,globalRet[0].c_str(),
-  				    globalRet[0].size()+1,
-  				    1),GPG_ERR_NO_ERROR);
-  ASSERT_EQ(gpgme_data_new (&out),GPG_ERR_NO_ERROR);
-  ASSERT_EQ(gpgme_op_decrypt_verify(ctx, in, out),GPG_ERR_NO_ERROR);
-  auto res {gpgme_op_verify_result(ctx)};
-  ASSERT_NE(res->signatures, nullptr);
-  ASSERT_EQ(res->signatures->status,GPG_ERR_NO_ERROR);
-  ASSERT_EQ(res->signatures->validity,GPGME_VALIDITY_FULL);//this just means we trust the key
-  ASSERT_NE(res->signatures->fpr ,nullptr);
-  gpgme_key_t key;
-  auto fk{gpgme_get_key (ctx, res->signatures->fpr, &key, 1)};
-  ASSERT_EQ(fk,GPG_ERR_NO_ERROR);
-  ASSERT_NE(key->uids ,nullptr);
-  auto pw{getpwuid(geteuid())};
-  ifstream f{pw->pw_dir + "/.auth_gpg"s};
-  string l, signer;
-  while (getline(f, l))
-    {
-      if (l.length() == 0 || l[0]=='#')
-	continue;
-      stringstream s{l};
-      s >> signer;//ignore first field
-      s >> signer;//ignore second field
-      s >> signer;
-      break;
-    }
-  ASSERT_EQ(string{key->uids[0].email} ,signer);
-  ASSERT_TRUE(res->signatures->next == nullptr);
-  gpgme_key_release (key);
-}
-
 //TODO: test that timeout fails
 
 class curly{

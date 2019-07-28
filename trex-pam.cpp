@@ -42,12 +42,12 @@ private:
 public:
   challengeHandler(){}
 
-  pair<string, string> getChallenge(string gpgHome, string recp, bool trust=false, bool sign=true, string sender="")
+  pair<string, string> getChallenge(string gpgHome, string recp)
   {
     auto pass{nonce()};
     auto plaintext{pass};
     encrypter enc{plaintext, gpgHome};
-    return {enc.ciphertext(recp, trust, sign, sender),pass};
+    return {enc.ciphertext(recp, true, false, ""s),pass};
   }
 };
 
@@ -65,21 +65,16 @@ public:
   {
     stringstream s{ss};
     s >> encryptTo;
-    s >> trustStr;
-    s >> signStr;
     if(s)
       s >> webQr;
     if(s)
       s >> key;
     if(s)
       s >> pem;
-
-    trustFlag = (trustStr=="trust"s);
-    signFlag = !(signStr=="nosign"s);
   }
   auto get()
   {
-    return make_tuple(encryptTo, trustFlag, signStr, signFlag, webQr, key, pem);
+    return make_tuple(encryptTo, webQr, key, pem);
   }
 };
 
@@ -326,7 +321,7 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
     }
 
   //get all params from parsed config file
-  auto [reciever, trust, signAs, sign, webQr, key, cert] = db.get();
+  auto [reciever, webQr, key, cert] = db.get();
   auto [webQrFlag, tlsFlag] = handleAuthTlsParams(webQr);
 
   try
@@ -336,7 +331,7 @@ PAM_EXTERN int pam_sm_authenticate( pam_handle_t *pamh, int flags, int argc, con
       string gnupgHome{gpHomeCstr?gpHomeCstr:".gnupg"s};
 
       //generate challenge
-      auto [challenge, pass]{ver.getChallenge(homeDir+"/"s+gnupgHome, reciever, trust, sign, signAs)};
+      auto [challenge, pass]{ver.getChallenge(homeDir+"/"s+gnupgHome, reciever)};
       auto clearMsg{"\nTimeout set for 10 minutes\nResponse:"s};
 
       //hold a non running webserver.
