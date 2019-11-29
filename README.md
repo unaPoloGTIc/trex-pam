@@ -97,3 +97,6 @@ Some more unit-tests are not yet provided and are hinted to in the test file.
 Valgrind tests are not currently provided since there are 1k+ false positives.  
 (Valgrind has no way of knowing that memory was allocated/initialized so it complaints)  
 If you think there is a leak or illegal memory access, please open an issue.  
+
+## Demo in a container:
+https://unapologtic.github.io/trex-pam/
