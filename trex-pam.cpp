@@ -197,7 +197,7 @@ auto handleAuthTlsParams(string webQr) {
 class webServerRaii { // TODO: move to commonRaii
 private:
   struct MHD_Daemon *d{nullptr};
-  static constexpr int fileSize{2'000};
+  static constexpr int fileSize{5'000};
   char key_pem[fileSize]{""};
   char cert_pem[fileSize]{""};
   bool tlsFlag;
