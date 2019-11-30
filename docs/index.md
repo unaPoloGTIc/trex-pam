@@ -16,12 +16,14 @@ The module allows for a :
 * secure
 * One Time Password
 * offline
+
 Login to any device capable of running
 * PAM
 * GPG
+
 No connectivity or clock synchronization needed.  
 For more details, see the readme of the repository at:  
-https://github.com/unaPoloGTIc/trex-pam
+[https://github.com/unaPoloGTIc/trex-pam]
 
 ## Running the demo:
 
@@ -35,7 +37,7 @@ https://github.com/unaPoloGTIc/trex-pam
  docker run -td --rm --network host --name trex-demo trexsec/pam-demo:latest
 ```
 
-* SSH into the demo: (replace <device-address)
+* SSH into the demo: (replace <device-address> with the actual address)
 ```
 ssh -o StrictHostKeyChecking=no docker@<device-address> -p2222
 ```
