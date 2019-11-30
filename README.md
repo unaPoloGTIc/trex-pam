@@ -99,4 +99,4 @@ Valgrind tests are not currently provided since there are 1k+ false positives.
 If you think there is a leak or illegal memory access, please open an issue.  
 
 ## Demo in a container:
-https://unapologtic.github.io/trex-pam/
+https://demo.trex-security.com/
