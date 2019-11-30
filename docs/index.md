@@ -23,7 +23,7 @@ Login to any device capable of running
 
 No connectivity or clock synchronization needed.  
 For more details, see the readme of the repository at:  
-[https://github.com/unaPoloGTIc/trex-pam]
+<https://github.com/unaPoloGTIc/trex-pam>
 
 ## Running the demo:
 
@@ -37,9 +37,9 @@ For more details, see the readme of the repository at:
  docker run -td --rm --network host --name trex-demo trexsec/pam-demo:latest
 ```
 
-* SSH into the demo: (replace <device-address> with the actual address)
+* SSH into the demo: (replace `device-address` with the actual address)
 ```
-ssh -o StrictHostKeyChecking=no docker@<device-address> -p2222
+ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 ```
 * Follow the instructions printed.
 * Password for users `docker`, `root` is `1234`
