@@ -58,6 +58,14 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 * We will not contact you without your consent.
 * We will never share your information with any party.
 
+<form>
+<textarea>
+Challange
+</textarea>
+<input type="email">
+<input type="checkbox">
+<input type="submit">
+</form>
 
 WIP
 
