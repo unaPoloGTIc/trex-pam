@@ -9,9 +9,7 @@ title: "Trex-Security Demo"
 permalink: /
 ---
 
-# Trex PAM module demo:
-
-## In a few words:
+# In a few words:
 The module allows for a :
 * secure
 * One Time Password
@@ -25,9 +23,9 @@ No connectivity or clock synchronization needed.
 For more details, see the readme of the repository at:  
 <https://github.com/unaPoloGTIc/trex-pam>
 
-## Running the demo:
+# Running the demo:
 
-### Setup
+## Setup
 * Get the image:
  ```
  docker pull trexsec/pam-demo:latest
@@ -44,7 +42,7 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 * Follow the instructions printed.
 * Password for users `docker`, `root` is `1234`
 
-### Once convinced that:
+## Once convinced that:
 * The container does not access the Internet
 * The container does not need to sync the time
 * The container does not hold any secret key of value (optional temp. HTTPS key only).
@@ -52,9 +50,9 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 * The message is only used once
 * The message can also be obtained as a QR code
 
-### Proceed to the demo of the proprietary product:
+## Proceed to the demo of the proprietary product:
 
-#### Submit the form:
+### Submit the form:
 * We will not contact you without your consent.
 * We will not retain your email address without your consent.
 * We will never share your information with any party.
@@ -72,7 +70,7 @@ WIP:
 </fieldset>
 </form>
 
-## A full demo includes:
+# A full demo includes:
 * Full on premise control of the keys used.
 * Control and configure users and permissions.
 * See logs with login attempts and history.
