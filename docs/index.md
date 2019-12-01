@@ -59,15 +59,16 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 * We will never share your information with any party.
 
 <form>
+<fieldset>
+<legend>Demo OTP</legend>
 <textarea rows="15" cols="70" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
 </textarea><br>  
 <input type="email" name="email"><br>  
 <input type="checkbox" name="retain">Keep my email address and contact me once at most.<br>
 <input type="submit"  value="Get OTP">
 <input type="reset">
+</fieldset>
 </form>
-
-WIP
 
 ## A full demo includes:
 * Full on premise control of the keys used.
