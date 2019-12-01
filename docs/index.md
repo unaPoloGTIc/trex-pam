@@ -67,7 +67,7 @@ WIP:
 </textarea><br>  
 <input type="email" name="email"><br>  
 <input type="checkbox" name="retain">Keep my email address and contact me once at most in the future.<br>
-<input type="submit"  value="Email me n OTP">
+<input type="submit"  value="Email me an OTP">
 <input type="reset">
 </fieldset>
 </form>
