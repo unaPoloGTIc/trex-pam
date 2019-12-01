@@ -47,9 +47,24 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 ### Once convinced that:
 * The container does not access the Internet
 * The container does not need to sync the time
+* The container does not hold any secret key of value (optional temp. HTTPS key only).
 * To login, a GPG message must be decrypted
 * The message is only used once
 * The message can also be obtained as a QR code
 
 ### Proceed to the demo of the proprietary product:
+
+#### Paste the challange here:
+WIP
+
+#### Add the Slack bot front-end to your Slack workspace:
+WIP
+
+## A full demo includes:
+* Full on premise control of the keys used.
+* Control and configure users and permissions.
+* See logs with login attempts and history.
+* See other front-ends in action.
+
+### Submit your email for more info:
 COMING SOON
