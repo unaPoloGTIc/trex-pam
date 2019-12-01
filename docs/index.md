@@ -56,8 +56,10 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 
 #### Submit the form:
 * We will not contact you without your consent.
+* We will not retain your email address without your consent.
 * We will never share your information with any party.
 
+WIP:
 <form>
 <fieldset>
 <legend>Demo OTP</legend>
