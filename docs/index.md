@@ -59,7 +59,7 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 * We will never share your information with any party.
 
 <form>
-<textarea rows="15" cols="80" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
+<textarea rows="15" cols="70" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
 </textarea><br>  
 <input type="email" name="email"><br>  
 <input type="checkbox" name="retain">Keep my email address and contact me once at most.<br>
