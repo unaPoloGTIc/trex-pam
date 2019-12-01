@@ -66,8 +66,8 @@ WIP:
 <textarea rows="15" cols="70" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
 </textarea><br>  
 <input type="email" name="email"><br>  
-<input type="checkbox" name="retain">Keep my email address and contact me once at most.<br>
-<input type="submit"  value="Get OTP">
+<input type="checkbox" name="retain">Keep my email address and contact me once at most in the future.<br>
+<input type="submit"  value="Email me n OTP">
 <input type="reset">
 </fieldset>
 </form>
