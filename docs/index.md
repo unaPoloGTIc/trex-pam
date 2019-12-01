@@ -10,16 +10,16 @@ permalink: /
 ---
 
 # In a few words:
-The module allows for a :
-* secure
-* One Time Password
-* offline
+The module allows for a:
+* Secure
+* Single use password
+* Offline
 
-Login to any device capable of running
+Login, to any device capable of running:
 * PAM
-* GPG
+* PGP
 
-No connectivity or clock synchronization needed.  
+No connectivity, secret key or clock synchronization needed.  
 For more details, see the readme of the repository at:  
 <https://github.com/unaPoloGTIc/trex-pam>
 
@@ -46,13 +46,15 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 * The container does not access the Internet
 * The container does not need to sync the time
 * The container does not hold any secret key of value (optional temp. HTTPS key only).
-* To login, a GPG message must be decrypted
+* To login, a PGP message must be decrypted
 * The message is only used once
 * The message can also be obtained as a QR code
 
 ## Proceed to the demo of the proprietary product:
 
 ### Submit the form:
+
+Privacy and data collection:
 * We will not contact you without your consent.
 * We will not retain your email address without your consent.
 * We will never share your information with any party.
@@ -71,7 +73,7 @@ WIP:
 </form>
 
 # A full demo includes:
-* Full on premise control of the keys used.
+* Full on-premise control of the keys used.
 * Control and configure users and permissions.
 * See logs with login attempts and history.
 * See other front-ends in action.
