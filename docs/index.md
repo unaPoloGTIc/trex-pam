@@ -54,10 +54,11 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 
 ### Proceed to the demo of the proprietary product:
 
-#### Paste the challange here:
-WIP
+#### Submit the form:
+* We will not contact you without your consent.
+* We will never share your information with any party.
 
-#### Add the Slack bot front-end to your Slack workspace:
+
 WIP
 
 ## A full demo includes:
@@ -66,5 +67,3 @@ WIP
 * See logs with login attempts and history.
 * See other front-ends in action.
 
-### Submit your email for more info:
-COMING SOON
