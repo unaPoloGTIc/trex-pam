@@ -62,16 +62,16 @@ var req=new XMLHttpRequest();
 req.open("POST", "https://bpmcontrol.org:1720/webdemo", true);
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
- if (this.readyState == 4 && (this.status == 200 || true)) { //remove (|| true)
-    document.getElementById("chalid").value =
-    this.responseText;
+ if (this.readyState == 4 && this.status == 200) {
+    document.getElementById("chalid").value = this.responseText;
   }
 };
-req.send(document.getElementById("chalid").value);
+//req.send(document.getElementById("chalid").value);
+req.send(new FormData (document.getElementById("formid")))
 }
 </script>
 
-<form>
+<form id="formid">
 <fieldset>
 <legend>Demo OTP</legend>
 <textarea id="chalid" rows="15" cols="65" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
