@@ -59,11 +59,11 @@ WIP:
 <script>
 function getresp() {
 var req=new XMLHttpRequest();
-req.open("POST", "https://api.github.com/user", true);
+req.open("POST", "https://api.github.com/user", true); //replace with our server
 //set in server: req.setRequestHeader("Access-Control-Allow-Origin", "demo.trex-security.com")
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
- if (this.readyState == 4 && (this.status == 200 || true)) {
+ if (this.readyState == 4 && (this.status == 200 || true)) { //remove (|| true)
     document.getElementById("chalid").value =
     this.responseText;
   }
