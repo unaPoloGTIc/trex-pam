@@ -54,8 +54,6 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 
 ### Submit the form:
 
-WIP:
-
 <script>
 function getresp() {
 var req=new XMLHttpRequest();
