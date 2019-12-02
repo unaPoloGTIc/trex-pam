@@ -54,20 +54,13 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 
 ### Submit the form:
 
-Privacy and data collection:
-* We will not contact you without your consent.
-* We will not retain your email address without your consent.
-* We will never share your information with any party.
-
 WIP:
 <form>
 <fieldset>
 <legend>Demo OTP</legend>
 <textarea rows="15" cols="65" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
 </textarea><br>  
-<input type="email" name="email"><br>  
-<input type="checkbox" name="retain">Keep my email address and contact me once at most in the future.<br>
-<input type="submit" value="Email me an OTP" method="post">
+<input type="submit" value="Get an OTP" method="post">
 <input type="reset">
 </fieldset>
 </form>
