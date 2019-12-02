@@ -65,7 +65,7 @@ req.open("GET", "https://api.github.com/user", true);
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
  if (this.readyState == 4 && (this.status == 200 || true)) {
-    document.getElementById("otp").innerHTML =
+    document.getElementById("chalid").value =
     this.responseText;
   }
 };
