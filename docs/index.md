@@ -55,15 +55,33 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 ### Submit the form:
 
 WIP:
+
+<script>
+function getresp() {
+var req=new XMLHttpRequest();
+req.setRequestHeader("Content-type", "multipart/form-data")
+req.onreadystatechange = function() {
+  if (this.readyState == 4 && this.status == 200) {
+    document.getElementById("otp").innerHTML =
+    this.responseText;
+  }
+};
+req.open("POST", "https://postman-echo.com/post", true);
+req.send(document.getElementById("chalid").value);
+}
+</script>
+
 <form>
 <fieldset>
 <legend>Demo OTP</legend>
-<textarea rows="15" cols="65" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
+<textarea id="chalid" rows="15" cols="65" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
 </textarea><br>  
-<input type="submit" value="Get an OTP" method="post">
+<button type="button" onclick="getresp()">Get an OTP</button>
 <input type="reset">
 </fieldset>
 </form>
+<br>
+<p><span id="otp"></span></p>
 <br>
 # A full demo includes:
 * Full on-premise control of the keys used.
