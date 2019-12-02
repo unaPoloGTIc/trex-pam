@@ -68,7 +68,7 @@ req.onreadystatechange = function() {
 };
 //req.send(document.getElementById("chalid").value);
 //req.send(new FormData (document.getElementById("formid")))
-req.send(new FormData (document.getElementById("chalid")))
+req.send(new FormData (document.getElementById("chalid").value))
 }
 </script>
 
