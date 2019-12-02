@@ -58,17 +58,18 @@ WIP:
 
 <script>
 function getresp() {
-alert("called func");
 var req=new XMLHttpRequest();
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
-  if (this.readyState == 4 && this.status == 200) {
+ alert("called func" + this.readyState + " , " + this.status);
+ if (this.readyState == 4 && this.status == 200) {
     document.getElementById("otp").innerHTML =
     this.responseText;
   }
 };
 req.open("POST", "https://postman-echo.com/post", true);
 req.send(document.getElementById("chalid").value);
+alert("sent");
 }
 </script>
 
