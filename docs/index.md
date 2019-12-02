@@ -59,7 +59,7 @@ WIP:
 <script>
 function getresp() {
 var req=new XMLHttpRequest();
-req.open("POST", "https://unapologtic.com:1720/webdemo", true);
+req.open("POST", "https://bpmcontrol.org:1720/webdemo", true);
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
  if (this.readyState == 4 && (this.status == 200 || true)) { //remove (|| true)
