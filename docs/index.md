@@ -77,7 +77,7 @@ req.send(document.getElementById("chalid").value);
 <legend>Demo OTP</legend>
 <textarea id="chalid" rows="15" cols="65" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
 </textarea><br>  
-<button type="button" onclick="getresp()">Get an OTP</button>
+<input type="submit" onclick="getresp()" value="Get an OTP">
 <input type="reset">
 </fieldset>
 </form>
