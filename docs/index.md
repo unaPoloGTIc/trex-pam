@@ -67,14 +67,15 @@ req.onreadystatechange = function() {
   }
 };
 //req.send(document.getElementById("chalid").value);
-req.send(new FormData (document.getElementById("formid")))
+//req.send(new FormData (document.getElementById("formid")))
+req.send(new FormData (document.getElementById("chalid")))
 }
 </script>
 
 <form id="formid">
 <fieldset>
 <legend>Demo OTP</legend>
-<textarea id="chalid" rows="15" cols="65" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
+<textarea id="chalid" rows="15" cols="65" maxlength="2000" name="challenge" placeholder="Paste your challenge here." required>
 </textarea><br>  
 <button type="button" onclick="getresp()">Get an OTP</button>
 <input type="reset">
