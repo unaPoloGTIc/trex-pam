@@ -78,7 +78,7 @@ alert("sent");
 <legend>Demo OTP</legend>
 <textarea id="chalid" rows="15" cols="65" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
 </textarea><br>  
-<input type="submit" onclick="getresp()" value="Get an OTP">
+<button type="button" onclick="getresp()">Get an OTP</button>
 <input type="reset">
 </fieldset>
 </form>
