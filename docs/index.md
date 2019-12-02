@@ -59,8 +59,7 @@ WIP:
 <script>
 function getresp() {
 var req=new XMLHttpRequest();
-req.open("GET", "https://api.github.com/user", true);
-//req.open("POST", "https://postman-echo.com/post", true); //csrf protection stops this
+req.open("POST", "https://api.github.com/user", true);
 //set in server: req.setRequestHeader("Access-Control-Allow-Origin", "demo.trex-security.com")
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
