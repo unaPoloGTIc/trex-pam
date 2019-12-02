@@ -41,6 +41,7 @@ ssh -o StrictHostKeyChecking=no docker@device-address -p2222
 ```
 * Follow the instructions printed.
 * Password for users `docker`, `root` is `1234`
+* User `docker` has the module enabled, user `root` does not.
 
 ## Once convinced that:
 * The container does not access the Internet
