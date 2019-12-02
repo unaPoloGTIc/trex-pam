@@ -58,6 +58,7 @@ WIP:
 
 <script>
 function getresp() {
+alert("called func");
 var req=new XMLHttpRequest();
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
