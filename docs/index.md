@@ -60,6 +60,7 @@ WIP:
 function getresp() {
 var req=new XMLHttpRequest();
 req.open("POST", "https://postman-echo.com/post", true);
+req.setRequestHeader("Access-Control-Allow-Origin", "*")
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
  alert("called func2" + this.readyState + " , " + this.status);
