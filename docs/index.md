@@ -59,18 +59,17 @@ WIP:
 <script>
 function getresp() {
 var req=new XMLHttpRequest();
-req.open("POST", "https://postman-echo.com/post", true);
-req.setRequestHeader("Access-Control-Allow-Origin", "*")
+req.open("GET", "https://api.github.com/user", true);
+//req.open("POST", "https://postman-echo.com/post", true); //csrf protection stops this
+//set in server: req.setRequestHeader("Access-Control-Allow-Origin", "demo.trex-security.com")
 req.setRequestHeader("Content-type", "multipart/form-data")
 req.onreadystatechange = function() {
- alert("called func2" + this.readyState + " , " + this.status);
  if (this.readyState == 4 && this.status == 200) {
     document.getElementById("otp").innerHTML =
     this.responseText;
   }
 };
 req.send(document.getElementById("chalid").value);
-alert("sent");
 }
 </script>
 
