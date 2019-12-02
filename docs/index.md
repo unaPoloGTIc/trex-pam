@@ -72,12 +72,12 @@ req.send(document.getElementById("chalid").value);
 }
 </script>
 
-<form action="getresp()">
+<form>
 <fieldset>
 <legend>Demo OTP</legend>
 <textarea id="chalid" rows="15" cols="65" maxlength="2000" name="challange" placeholder="Paste your challange here." required>
 </textarea><br>  
-<input type="submit" value="Get an OTP">
+<input type="submit" formaction="getresp()" value="Get an OTP">
 <input type="reset">
 </fieldset>
 </form>
