@@ -19,7 +19,7 @@ jobs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install libgpgme*
+        sudo apt-get install libgpgme* libmicrohttpd*
     - name: make
       run: make
     - name: make run-unit-tests
