@@ -18,6 +18,7 @@ jobs:
     - name: install deps
       shell: bash
       run: |
+        sudo apt-get update
         sudo apt-get install libgpgme*
     - name: make
       run: make
