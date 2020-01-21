@@ -19,7 +19,7 @@ jobs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install libgpgme* libmicrohttpd*
+        sudo apt-get install libgpgme* libmicrohttpd* libcurl* libpam0g-dev libqrcodegen* libboost-system-dev libgtest-dev libgmock-dev google-mock
     - name: make
       run: make
     - name: make run-unit-tests
