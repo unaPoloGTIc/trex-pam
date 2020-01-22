@@ -18,7 +18,7 @@ jobs:
     - name: install deps
       shell: bash
       run: |
-        sudo apt-get update
-        sudo apt-get install libgpgme* libmicrohttpd* libcurl* libpam0g-dev libqrcodegen* libboost-system-dev libgtest-dev libgmock-dev google-mock
+        #sudo apt-get update
+        #sudo apt-get install libgpgme* libmicrohttpd* libcurl* libpam0g-dev libqrcodegen* libboost-system-dev libgtest-dev libgmock-dev google-mock
     - name: make in a container
       run: make inception-build
