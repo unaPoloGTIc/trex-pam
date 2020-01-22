@@ -11,7 +11,7 @@ run-unit-tests: tests
 dockerize:
 	docker build ./containers -f ./containers/Dockerfile.builder -t trexpam-builder
 inception-build: dockerize
-	docker run --name trexpam-runner --rm -w="/src" trexpam-builder make all
+	docker run --name trexpam-runner --rm -v $$PWD:/src:nocopy -w="/src" trexpam-builder make all
 
 clean:
 	rm *.so *.o pam-tests
