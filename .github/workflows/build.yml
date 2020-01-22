@@ -1,0 +1,24 @@
+name: build module
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+    - name: install deps
+      shell: bash
+      run: |
+        #sudo apt-get update
+        #sudo apt-get install libgpgme* libmicrohttpd* libcurl* libpam0g-dev libqrcodegen* libboost-system-dev libgtest-dev libgmock-dev google-mock
+    - name: make in a container
+      run: make inception-build
