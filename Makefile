@@ -9,9 +9,9 @@ tests: pam-tests.cpp pam-module
 run-unit-tests: tests
 	LD_PRELOAD=libpam_wrapper.so PAM_WRAPPER=1 PAM_WRAPPER_KEEP_DIR=0 PAM_WRAPPER_DEBUGLEVEL=0 PAM_WRAPPER_USE_SYSLOG=1 PAM_WRAPPER_SERVICE_DIR=./config/ ./pam-tests
 dockerize:
-	docker build ./containers -f ./containers/Dockerfile.builder -t trexpam-builder
+	docker build . -f ./containers/Dockerfile.builder -t trexpam-builder
 inception-build: dockerize
-	docker run --name trexpam-runner --rm -v $$PWD:/src:nocopy -w="/src" trexpam-builder make all
+	docker run --name trexpam-runner --rm -w="/home/docker" trexpam-builder make all
 
 clean:
 	rm *.so *.o pam-tests

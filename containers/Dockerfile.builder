@@ -12,7 +12,7 @@ RUN mkdir /var/run/sshd
 RUN echo 'root:1234' | chpasswd
 RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
 
-ADD sshd /etc/pam.d/sshd
+#ADD sshd /etc/pam.d/sshd
 
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 
@@ -26,7 +26,7 @@ RUN useradd docker \
 RUN echo 'docker:1234' | chpasswd
 RUN echo 'docker            ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-ADD sshd_config /etc/ssh/sshd_config
+#ADD sshd_config /etc/ssh/sshd_config
 
 ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
@@ -34,5 +34,7 @@ RUN echo "export VISIBLE=now" >> /etc/profile
 EXPOSE 2222
 
 USER docker
+
+ADD ./ /home/docker
 
 CMD ["sudo", "/usr/sbin/sshd", "-D", "-p2222"]
