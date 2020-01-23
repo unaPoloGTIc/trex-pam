@@ -338,6 +338,7 @@ public:
 
 int main(int argc, char **argv) {
   globalRaii init{};
+  //TODO: only if file doesn't exist.
   string cwd{fs::current_path().string() + "/"s};
   {
     ofstream cnf{cwd + "config/mmotd-module"s};
