@@ -1,0 +1,12 @@
+%echo Generating a default key
+Key-Type: default
+Subkey-Type: default
+Name-Real: vendor
+Name-Comment: with no passphrase
+Name-Email: vendortest@mmodt.com
+Expire-Date: 0
+#Passphrase:
+%no-ask-passphrase
+%no-protection
+%commit
+%echo done
