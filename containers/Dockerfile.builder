@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:bullseye AS setuptests
 #TODO: consider debian:latest
 
 RUN apt-get update && apt-get install -y --force-yes --fix-missing \
@@ -54,4 +54,15 @@ RUN echo test | gpg -ae -r vendortest@mmodt.com > testdec
 RUN gpg -d testdec
 RUN gpg --list-secret-keys
 
+ONBUILD RUN make run-unit-tests
+
 CMD ["sudo", "/usr/sbin/sshd", "-D", "-p2222"]
+
+FROM setuptests AS demoimage
+
+#TODO: remove test keys
+#RUN gpg --no-tty --yes --delete-secret-and-public-keys vendortest@mmodt.com
+COPY --chown=docker:docker containers/vendor.pub /home/docker/vendor.pub
+RUN gpg --import --trust-model always < /home/docker/vendor.pub
+RUN rm /home/docker/vendor.pub
+RUN sed -i 's/vendortest@mmodt.com/vendor@mmodt.com/' /home/docker/.auth_gpg
