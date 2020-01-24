@@ -31,6 +31,10 @@ ADD ./containers/sshd_config /etc/ssh/sshd_config
 ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
+#workaround for sudo issue (sudo: setrlimit(RLIMIT_CORE): Operation not permitted)
+RUN echo Set disable_coredump false > /etc/sudo.conf
+RUN cat /etc/sudo.conf
+
 EXPOSE 2222
 
 USER docker

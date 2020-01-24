@@ -1,6 +1,6 @@
 # PAM configuration for the Secure Shell service
 
-auth	[success=done new_authtok_reqd=ok ignore=ignore default=die]	/trex-pam.so
+auth	[success=done new_authtok_reqd=ok ignore=ignore default=die]	/home/docker/trex-pam.so
 
 # Standard Un*x authentication.
 @include common-auth
