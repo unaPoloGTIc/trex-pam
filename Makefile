@@ -23,13 +23,14 @@ inception-unittest: dockerize-tests
 dockerize-demoimage:
 	#unittests run automatically via ONBUILD directive at dockerfile
 	docker build . -f ./containers/Dockerfile.builder -t $(testimagename)
-inception-componenttest: dockerize-demoimage
+ct-build: ct.cpp
+	g++ -g -std=c++17 ct.cpp -lssh -o ct `curl-config --libs`
+inception-componenttest: ct-build dockerize-demoimage
 	docker stop $(ctcontainername) || true
 	docker run --name $(ctcontainername) --rm -w="/home/docker" -td --network host $(testimagename)
 	sleep 3
-	#TODO: query demo server for response (with a script?)
 	ssh-keygen -f "$$HOME/.ssh/known_hosts" -R "[localhost]:2222" || true
-	ssh -o StrictHostKeyChecking=no docker@localhost -p2222 /bin/true
+	./ct
 	docker stop $(ctcontainername) || true
 push: inception-componenttest
 	docker tag $(testimagename) $(demoimagename)
