@@ -1,6 +1,7 @@
 ctcontainername = trexpam-ct
-testimagename = trexpam-demo-builder
-demoimagename = trexsec/pam-demo:latest
+testimagename = trexpam-test-builder
+demoimagename = trexpam-demo-builder
+remoteimagename = trexsec/pam-demo:latest
 containermake = docker run --name trexpam-runner --rm -w="/home/docker" $(testimagename) make
 
 all: pam-module tests
@@ -15,28 +16,28 @@ run-unit-tests: tests
 	gpg -d testdec || true #workaround to prime gpg in container TODO: move elsewhere
 	LD_PRELOAD=libpam_wrapper.so PAM_WRAPPER=1 PAM_WRAPPER_KEEP_DIR=0 PAM_WRAPPER_DEBUGLEVEL=0 PAM_WRAPPER_USE_SYSLOG=1 PAM_WRAPPER_SERVICE_DIR=./config/ ./pam-tests
 dockerize-tests:
-	docker build . -f ./containers/Dockerfile.builder -t trexpam-test-builder --target setuptests
+	docker build . -f ./containers/Dockerfile.builder -t $(testimagename) --target setuptests
 inception-build: dockerize-tests
 	$(containermake) all
 inception-unittest: dockerize-tests
 	$(containermake) run-unit-tests
 dockerize-demoimage:
 	#unittests run automatically via ONBUILD directive at dockerfile
-	docker build . -f ./containers/Dockerfile.builder -t $(testimagename)
+	docker build . -f ./containers/Dockerfile.builder -t $(demoimagename)
 ct-build: ct.cpp
 	g++ -g -std=c++17 ct.cpp -lssh -o ct `curl-config --libs`
 inception-componenttest: ct-build dockerize-demoimage
 	docker stop $(ctcontainername) || true
-	docker run --name $(ctcontainername) --rm -w="/home/docker" -td --network host $(testimagename)
+	docker run --name $(ctcontainername) --rm -w="/home/docker" -td --network host $(demoimagename)
 	sleep 3
 	ssh-keygen -f "$$HOME/.ssh/known_hosts" -R "[localhost]:2222" || true
 	./ct
 	docker stop $(ctcontainername) || true
 push: inception-componenttest
-	docker tag $(testimagename) $(demoimagename)
+	docker tag $(demoimagename) $(remoteimagename)
 	#workaround if pushing via SSH without X
 	#dbus-run-session bash
 	#gnome-keyring-daemon -r
-	docker push $(demoimagename)
+	docker push $(remoteimagename)
 clean:
 	rm *.so *.o pam-tests
