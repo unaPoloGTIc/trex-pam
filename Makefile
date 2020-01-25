@@ -1,3 +1,8 @@
+ctcontainername = trexpam-ct
+testimagename = trexpam-demo-builder
+demoimagename = trexsec/pam-demo:latest
+containermake = docker run --name trexpam-runner --rm -w="/home/docker" $(testimagename) make
+
 all: pam-module tests
 
 pam-module: trex-pam.cpp
@@ -12,19 +17,25 @@ run-unit-tests: tests
 dockerize-tests:
 	docker build . -f ./containers/Dockerfile.builder -t trexpam-test-builder --target setuptests
 inception-build: dockerize-tests
-	docker run --name trexpam-runner --rm -w="/home/docker" trexpam-test-builder make all
+	$(containermake) all
 inception-unittest: dockerize-tests
-	docker run --name trexpam-runner --rm -w="/home/docker" trexpam-test-builder make run-unit-tests
+	$(containermake) run-unit-tests
 dockerize-demoimage:
-	docker build . -f ./containers/Dockerfile.builder -t trexpam-demo-builder
+	#unittests run automatically via ONBUILD directive at dockerfile
+	docker build . -f ./containers/Dockerfile.builder -t $(testimagename)
 inception-componenttest: dockerize-demoimage
-	docker run --name trexpam-ct --rm -w="/home/docker" -td --network host trexpam-demo-builder
+	docker stop $(ctcontainername) || true
+	docker run --name $(ctcontainername) --rm -w="/home/docker" -td --network host $(testimagename)
+	sleep 3
 	#TODO: query demo server for response (with a script?)
-	ssh-keygen -f "$$HOME/.ssh/known_hosts" -R "[localhost]:2222"
+	ssh-keygen -f "$$HOME/.ssh/known_hosts" -R "[localhost]:2222" || true
 	ssh -o StrictHostKeyChecking=no docker@localhost -p2222 /bin/true
-	docker stop trexpam-ct
+	docker stop $(ctcontainername) || true
 push: inception-componenttest
-	#docker tag
-	#docker push
+	docker tag $(testimagename) $(demoimagename)
+	#workaround if pushing via SSH without X
+	#dbus-run-session bash
+	#gnome-keyring-daemon -r
+	docker push $(demoimagename)
 clean:
 	rm *.so *.o pam-tests
