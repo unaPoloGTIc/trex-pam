@@ -22,3 +22,5 @@ jobs:
         sudo apt-get install libssh-dev
     - name: run unit tests in a container
       run: make inception-unittest
+    - name: run component tests in a container
+      run: make inception-componenttest

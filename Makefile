@@ -27,12 +27,11 @@ dockerize-demoimage:
 ct-build: ct.cpp
 	g++ -g -std=c++17 ct.cpp -lssh -o ct `curl-config --libs`
 inception-componenttest: ct-build dockerize-demoimage
-	docker stop $(ctcontainername) || true
+	-docker stop $(ctcontainername) | true #if previous invocation failed
 	docker run --name $(ctcontainername) --rm -w="/home/docker" -td --network host $(demoimagename)
 	sleep 3
-	ssh-keygen -f "$$HOME/.ssh/known_hosts" -R "[localhost]:2222" || true
 	./ct
-	docker stop $(ctcontainername) || true
+	-docker stop $(ctcontainername) | true
 push: inception-componenttest
 	docker tag $(demoimagename) $(remoteimagename)
 	#workaround if pushing via SSH without X

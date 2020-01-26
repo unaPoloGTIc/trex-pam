@@ -1,5 +1,4 @@
-FROM debian:bullseye AS setuptests
-#TODO: consider debian:latest
+FROM debian:latest AS setuptests
 
 RUN apt-get update && apt-get install -y --force-yes --fix-missing \
     libgpgme11 libstdc++6 openssh-server sudo libqrcodegen1 libqrcodegencpp1 \
@@ -48,7 +47,7 @@ WORKDIR /home/docker
 RUN openssl genrsa -out server.key 1024
 RUN openssl req -days 3650 -out server.pem -new -x509 -key server.key \
     -subj "/C=NL/ST=Zyesyes/L=nono/O=where/OU=devedev/CN=none.com"
-RUN gpg --gen-key  --trust-model always --passphrase='' --no-tty --batch keyparams
+RUN gpg --gen-key  --trust-model always --no-tty --batch keyparams
 
 RUN echo test | gpg -ae -r vendortest@mmodt.com > testdec
 RUN gpg -d testdec
