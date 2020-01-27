@@ -1,4 +1,4 @@
-![build module](https://github.com/unaPoloGTIc/trex-pam/workflows/build%20module/badge.svg)
+![build module](https://github.com/unaPoloGTIc/trex-pam/workflows/build%20module/badge.svg) ![push to dockerhub](https://github.com/unaPoloGTIc/trex-pam/workflows/push%20to%20dockerhub/badge.svg)
 
 # Trex PAM module:
 
