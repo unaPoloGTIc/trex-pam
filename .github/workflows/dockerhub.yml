@@ -1,4 +1,5 @@
-name: TODO push to dockerhub
+name: push to dockerhub
+#TODO: avoid duplication with build.yml
 on:
   push:
     branches:
@@ -10,10 +11,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: TODO push to dockerhub
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+    - name: install deps
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install libssh-dev libcurl4-gnutls-dev
+    - name: push to dockerhub
       env:
         dockerhubpass: ${{ secrets.dockerhublogintoken }}
         dockerhubuser: ${{ secrets.dockerhubuser }}
       run: |
         docker login --username $dockerhubuser --password $dockerhubpass
-        #make push
+        make push
