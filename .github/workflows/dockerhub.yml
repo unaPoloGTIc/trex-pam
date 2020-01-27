@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: ./.github/workflows/build.yml
-    - name: push to dockerhub
+    - uses: actions/checkout@v2
+    - name: TODO push to dockerhub
       env:
         dockerhubpass: ${{ secrets.testsecret }}
         dockerhubuser: ${{ secrets.testsecret }}
       run: |
         docker login --username $dockerhubuser --password $dockerhubpass
-        make push
+        #make push
