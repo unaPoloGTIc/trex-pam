@@ -1,3 +1,5 @@
+![build and test module](https://github.com/unaPoloGTIc/trex-pam/workflows/build%20module/badge.svg)
+
 # Trex PAM module:
 
 ## A PAM module that enables PAM to authenticate a user using a GPG key-pair.
