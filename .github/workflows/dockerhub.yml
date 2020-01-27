@@ -1,4 +1,4 @@
-name: push to dockerhub
+name: TODO push to dockerhub
 on:
   push:
     branches:
@@ -12,7 +12,6 @@ jobs:
     - uses: actions/checkout@v2
     - name: TODO push to dockerhub
       env:
-        testvar: ${{ secrets.testsecret }}
         dockerhubpass: ${{ secrets.dockerhublogintoken }}
         dockerhubuser: ${{ secrets.dockerhubuser }}
       run: |
