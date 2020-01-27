@@ -1,0 +1,19 @@
+name: push to dockerhub
+on:
+  push:
+    branches:
+      - master
+jobs:
+  dockerhubize:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: ./.github/workflows/build
+    - name: push to dockerhub
+      env:
+        dockerhubpass: ${{ secrets.testsecret }}
+        dockerhubuser: ${{ secrets.testsecret }}
+      run: |
+        docker login --username $dockerhubuser --password $dockerhubpass
+        make push
