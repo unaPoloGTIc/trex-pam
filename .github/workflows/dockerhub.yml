@@ -12,8 +12,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: TODO push to dockerhub
       env:
-        dockerhubpass: ${{ secrets.testsecret }}
-        dockerhubuser: ${{ secrets.testsecret }}
+        dockerhubpass: ${{ secrets.dockerhublogintoken }}
+        dockerhubuser: ${{ secrets.dockerhubuser }}
       run: |
         docker login --username $dockerhubuser --password $dockerhubpass
         #make push
