@@ -16,6 +16,8 @@ jobs:
         dockerhubpass: ${{ secrets.dockerhublogintoken }}
         dockerhubuser: ${{ secrets.dockerhubuser }}
       run: |
+        echo "dbgdbgdbg"
         echo $testvar
+        echo "eodeodeod"
         docker login --username $dockerhubuser --password $dockerhubpass
         #make push
